@@ -2,6 +2,7 @@
 .Rhistory
 .RData
 .Ruserdata
+data/raw/matrix_stats_3scenarios.tsv
 data/tax_matrices/*
 data/seq_matrices/*
 data/rmp_matrices/*
