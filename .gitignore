@@ -2,6 +2,7 @@
 .Rhistory
 .RData
 .Ruserdata
+README.html
 data/raw/matrix_stats_3scenarios.tsv
 data/tax_matrices/*
 data/seq_matrices/*
@@ -11,6 +12,7 @@ data/metadata_matrices/*
 data/qmp2_matrices/*
 data/correlations_taxontaxon/*
 data/correlations_taxonmetadata/*
+data/correlations_proportionality/*
 output/taxontaxon/*
 output/taxonmetadata/*
 output/alpha_div/*
@@ -19,4 +21,6 @@ output/qmp_qmpnr/*
 output/number_samples/*
 output/microbial_spread/*
 output/proportionality/*
-output/
+output/seq_depth/*
+output/taxon_prevalence/*
+output/proportionality/*
