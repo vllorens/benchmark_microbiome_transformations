@@ -1,5 +1,5 @@
-# Test of the effect of the number of samples in the community
-# Mon Dec  2 15:58:34 2019 ------------------------------
+# Test of the effect of the sequencing depth
+# Tue Dec  3 09:10:46 2019 ------------------------------
 
 
 #### Configure the environment ####
@@ -26,17 +26,18 @@ source("R/metadata.R")
 source("R/rarefy_even_sampling_depth.R")
 
 # create matrices (if not there)
-system("mkdir -p output/number_samples/")
+system("mkdir -p output/seq_depth/")
 
 # remove all previous results (if any)
-system("rm -rf output/number_samples/*")
+system("rm -rf output/seq_depth/*")
 
 
 
-#### Loop to test effect of number of samples ####
-set.seed(14102019)
+#### Loop to test effect of sequencing depth ####
+set.seed(18102019)
 
-for(numberofsamplestomake in c(20,50,100,200,500,1000)){
+for(seqdepth in c(9.21, 10.3, 10.81, 11.51, 12.2, 13.12)){ # different sequencing depths (in log scale)
+
     # create matrices (if not there)
     system("mkdir -p data/tax_matrices")
     system("mkdir -p data/seq_matrices")
@@ -56,12 +57,13 @@ for(numberofsamplestomake in c(20,50,100,200,500,1000)){
     system("rm -rf data/metadata_matrices/*")
     system("rm -rf data/correlations_taxontaxon/*")
     system("rm -rf data/correlations_taxonmetadata/*")
-
+    
     # create additional folders for the reference data (on the real matrices)
     system("mkdir -p data/correlations_taxontaxon/reference")
     system("mkdir -p data/correlations_taxonmetadata/reference")
     
-    # Load simulated matrices and subsample N random samples from each (N=numberofsamplestomake)
+    
+    # Load simulated matrices and subsample 200 samples from each
     load("data/raw/20191122_sims_Pedro_v2.4.Rdata")
     
     for(tab in ls(pattern = "Mp")){
@@ -77,7 +79,7 @@ for(numberofsamplestomake in c(20,50,100,200,500,1000)){
         }
         ind_matrix <- ind_matrix %>% 
             as.data.frame()
-        ind_matrix <- ind_matrix[,sample(colnames(ind_matrix), replace = F, size = numberofsamplestomake)]
+        ind_matrix <- ind_matrix[,sample(colnames(ind_matrix), replace = F, size = 200)]
         spread <- (apply(ind_matrix,2,sum) %>% max)/(apply(ind_matrix,2,sum) %>% min) 
         if(spread<10){
             spread_cat <- "low"
@@ -88,15 +90,16 @@ for(numberofsamplestomake in c(20,50,100,200,500,1000)){
                     col.names = T, row.names=T, quote=F, sep="\t")
     }
     
-    # Generate all matrices
+    
     # the sequencing data comes from the real simulated matrix
+    # here we vary the number of sequencing reads at each iteration of the for loop
     for(file in list.files("data/tax_matrices", full.names = T)){
         filename <- basename(file) %>% 
             gsub(x=., pattern="taxonomy", replacement="seqOut_taxonomy")
         tax_matrix <- read.table(file, header=T, stringsAsFactors=F, sep="\t")
         seqOut <- data.frame(row.names=rownames(tax_matrix))
         for(col in 1:ncol(tax_matrix)){
-            tvect <- sample(rownames(tax_matrix),size=rlnorm(1, meanlog = 10.3, sdlog = 0.3), 
+            tvect <- sample(rownames(tax_matrix),size=rlnorm(1, meanlog = seqdepth, sdlog = 0.3), 
                             prob=tax_matrix[,col], replace=T) %>% table
             seqOut <- cbind(seqOut, tvect[rownames(seqOut)])
         }
@@ -152,7 +155,7 @@ for(numberofsamplestomake in c(20,50,100,200,500,1000)){
                     quote = FALSE, row.names = TRUE, col.names=T, sep="\t")
     }
     
-    # First, define parameters for the metadata
+    # Define parameters for the metadata
     rho_meta_min <- 0.35       # minimum correlation for the metadata variables
     rho_meta_max <- 0.6        # max correlation for the metadata variables
     num_metadata_noC <- 35     # metadata numeric variables not correlating
@@ -175,6 +178,11 @@ for(numberofsamplestomake in c(20,50,100,200,500,1000)){
                     row.names=paste0("sample_", 1:nrow(metaD)))
     }
     
+    
+    system(command = "mkdir -p data/correlations_taxontaxon/reference")
+    system(command = "mkdir -p data/correlations_taxonmetadata/reference")
+    system(command = "mkdir -p data/correlations_countsmetadata/reference")
+    
     # REAL
     for(file in list.files("data/tax_matrices", full.names = T)){
         # read file and select only those taxa to keep
@@ -193,6 +201,9 @@ for(numberofsamplestomake in c(20,50,100,200,500,1000)){
         metadata_correlation_object[[2]] <- matrix(p.adjust(as.vector(as.matrix(metadata_correlation_object[[2]])), method='fdr'),ncol=ncol(metadata_correlation_object[[2]]))
         colnames(metadata_correlation_object[[2]]) <- colnames(metadata_correlation_object[[1]])
         rownames(metadata_correlation_object[[2]]) <- rownames(metadata_correlation_object[[1]])
+        # calculate correlations and pvalues
+        counts_correlation_object <- counts_metadata_correlation(tax_matrix, metadata_matrix) 
+        counts_correlation_object[[2]] <- p.adjust(counts_correlation_object[[2]], method="BH")
         # write output (taxon-taxon)
         outputname_correlation <- gsub(filename, pattern="taxonomy", replacement="taxontaxon_rho_REAL")
         outputname_pval <- gsub(filename, pattern="taxonomy", replacement="taxontaxon_pvalue_REAL")
@@ -210,6 +221,15 @@ for(numberofsamplestomake in c(20,50,100,200,500,1000)){
                     col.names=T, row.names=T, quote=F, sep="\t")
         write.table(metadata_correlation_object[[2]], 
                     paste0("data/correlations_taxonmetadata/reference/", outputname_pval), 
+                    col.names=T, row.names=T, quote=F, sep="\t")
+        # write output (counts-metadata)
+        outputname_correlation <- gsub(filename, pattern="taxonomy", replacement="countsmetadata_rho_REAL")
+        outputname_pval <- gsub(filename, pattern="taxonomy", replacement="countsmetadata_pvalue_REAL")
+        write.table(counts_correlation_object[[1]], 
+                    paste0("data/correlations_countsmetadata/reference/", outputname_correlation), 
+                    col.names=T, row.names=T, quote=F, sep="\t")
+        write.table(counts_correlation_object[[2]], 
+                    paste0("data/correlations_countsmetadata/reference/", outputname_pval), 
                     col.names=T, row.names=T, quote=F, sep="\t")
     }
     
@@ -236,7 +256,10 @@ for(numberofsamplestomake in c(20,50,100,200,500,1000)){
         metadata_correlation_object[[2]] <- matrix(p.adjust(as.vector(as.matrix(metadata_correlation_object[[2]])), method='fdr'),ncol=ncol(metadata_correlation_object[[2]]))
         colnames(metadata_correlation_object[[2]]) <- colnames(metadata_correlation_object[[1]])
         rownames(metadata_correlation_object[[2]]) <- rownames(metadata_correlation_object[[1]])
-       # write output (taxon-taxon)
+        # calculate correlations and pvalues (counts-metadata)
+        counts_correlation_object <- counts_metadata_correlation(tax_matrix, metadata_matrix) 
+        counts_correlation_object[[2]] <- p.adjust(counts_correlation_object[[2]], method="BH")
+        # write output (taxon-taxon)
         outputname_correlation <- gsub(filename, pattern="seqOut_taxonomy", replacement="taxontaxon_rho_CLR")
         outputname_pval <- gsub(filename, pattern="seqOut_taxonomy", replacement="taxontaxon_pvalue_CLR")
         write.table(taxon_correlation_object[[1]], 
@@ -253,6 +276,15 @@ for(numberofsamplestomake in c(20,50,100,200,500,1000)){
                     col.names=T, row.names=T, quote=F, sep="\t")
         write.table(metadata_correlation_object[[2]], 
                     paste0("data/correlations_taxonmetadata/", outputname_pval), 
+                    col.names=T, row.names=T, quote=F, sep="\t")
+        # write output (counts-metadata)
+        outputname_correlation <- gsub(filename, pattern="seqOut_taxonomy", replacement="countsmetadata_rho_CLR")
+        outputname_pval <- gsub(filename, pattern="seqOut_taxonomy", replacement="countsmetadata_pvalue_CLR")
+        write.table(counts_correlation_object[[1]], 
+                    paste0("data/correlations_countsmetadata/", outputname_correlation), 
+                    col.names=T, row.names=T, quote=F, sep="\t")
+        write.table(counts_correlation_object[[2]], 
+                    paste0("data/correlations_countsmetadata/", outputname_pval), 
                     col.names=T, row.names=T, quote=F, sep="\t")
     }
     
@@ -280,6 +312,9 @@ for(numberofsamplestomake in c(20,50,100,200,500,1000)){
         metadata_correlation_object[[2]] <- matrix(p.adjust(as.vector(as.matrix(metadata_correlation_object[[2]])), method='fdr'),ncol=ncol(metadata_correlation_object[[2]]))
         colnames(metadata_correlation_object[[2]]) <- colnames(metadata_correlation_object[[1]])
         rownames(metadata_correlation_object[[2]]) <- rownames(metadata_correlation_object[[1]])
+        # calculate correlations and pvalues (counts-metadata)
+        counts_correlation_object <- counts_metadata_correlation(tax_matrix, metadata_matrix) 
+        counts_correlation_object[[2]] <- p.adjust(counts_correlation_object[[2]], method="BH")
         # write output (taxon-taxon)
         outputname_correlation <- gsub(filename, pattern="seqOut_taxonomy", replacement="taxontaxon_rho_GMPR")
         outputname_pval <- gsub(filename, pattern="seqOut_taxonomy", replacement="taxontaxon_pvalue_GMPR")
@@ -297,6 +332,15 @@ for(numberofsamplestomake in c(20,50,100,200,500,1000)){
                     col.names=T, row.names=T, quote=F, sep="\t")
         write.table(metadata_correlation_object[[2]], 
                     paste0("data/correlations_taxonmetadata/", outputname_pval), 
+                    col.names=T, row.names=T, quote=F, sep="\t")
+        # write output (counts-metadata)
+        outputname_correlation <- gsub(filename, pattern="seqOut_taxonomy", replacement="countsmetadata_rho_GMPR")
+        outputname_pval <- gsub(filename, pattern="seqOut_taxonomy", replacement="countsmetadata_pvalue_GMPR")
+        write.table(counts_correlation_object[[1]], 
+                    paste0("data/correlations_countsmetadata/", outputname_correlation), 
+                    col.names=T, row.names=T, quote=F, sep="\t")
+        write.table(counts_correlation_object[[2]], 
+                    paste0("data/correlations_countsmetadata/", outputname_pval), 
                     col.names=T, row.names=T, quote=F, sep="\t")
     }
     
@@ -326,6 +370,9 @@ for(numberofsamplestomake in c(20,50,100,200,500,1000)){
         metadata_correlation_object[[2]] <- matrix(p.adjust(as.vector(as.matrix(metadata_correlation_object[[2]])), method='fdr'),ncol=ncol(metadata_correlation_object[[2]]))
         colnames(metadata_correlation_object[[2]]) <- colnames(metadata_correlation_object[[1]])
         rownames(metadata_correlation_object[[2]]) <- rownames(metadata_correlation_object[[1]])
+        # calculate correlations and pvalues (counts-metadata)
+        counts_correlation_object <- counts_metadata_correlation(tax_matrix, metadata_matrix) 
+        counts_correlation_object[[2]] <- p.adjust(counts_correlation_object[[2]], method="BH")
         # write output (taxon-taxon)
         outputname_correlation <- gsub(filename, pattern="seqOut_taxonomy", replacement="taxontaxon_rho_CSS")
         outputname_pval <- gsub(filename, pattern="seqOut_taxonomy", replacement="taxontaxon_pvalue_CSS")
@@ -343,6 +390,15 @@ for(numberofsamplestomake in c(20,50,100,200,500,1000)){
                     col.names=T, row.names=T, quote=F, sep="\t")
         write.table(metadata_correlation_object[[2]], 
                     paste0("data/correlations_taxonmetadata/", outputname_pval), 
+                    col.names=T, row.names=T, quote=F, sep="\t")
+        # write output (counts-metadata)
+        outputname_correlation <- gsub(filename, pattern="seqOut_taxonomy", replacement="countsmetadata_rho_CSS")
+        outputname_pval <- gsub(filename, pattern="seqOut_taxonomy", replacement="countsmetadata_pvalue_CSS")
+        write.table(counts_correlation_object[[1]], 
+                    paste0("data/correlations_countsmetadata/", outputname_correlation), 
+                    col.names=T, row.names=T, quote=F, sep="\t")
+        write.table(counts_correlation_object[[2]], 
+                    paste0("data/correlations_countsmetadata/", outputname_pval), 
                     col.names=T, row.names=T, quote=F, sep="\t")
     }
     
@@ -370,6 +426,9 @@ for(numberofsamplestomake in c(20,50,100,200,500,1000)){
         metadata_correlation_object[[2]] <- matrix(p.adjust(as.vector(as.matrix(metadata_correlation_object[[2]])), method='fdr'),ncol=ncol(metadata_correlation_object[[2]]))
         colnames(metadata_correlation_object[[2]]) <- colnames(metadata_correlation_object[[1]])
         rownames(metadata_correlation_object[[2]]) <- rownames(metadata_correlation_object[[1]])
+        # calculate correlations and pvalues (counts-metadata)
+        counts_correlation_object <- counts_metadata_correlation(tax_matrix, metadata_matrix) 
+        counts_correlation_object[[2]] <- p.adjust(counts_correlation_object[[2]], method="BH")
         # write output (taxon-taxon)
         outputname_correlation <- gsub(filename, pattern="seqOut_taxonomy", replacement="taxontaxon_rho_TMM")
         outputname_pval <- gsub(filename, pattern="seqOut_taxonomy", replacement="taxontaxon_pvalue_TMM")
@@ -387,6 +446,15 @@ for(numberofsamplestomake in c(20,50,100,200,500,1000)){
                     col.names=T, row.names=T, quote=F, sep="\t")
         write.table(metadata_correlation_object[[2]], 
                     paste0("data/correlations_taxonmetadata/", outputname_pval), 
+                    col.names=T, row.names=T, quote=F, sep="\t")
+        # write output (counts-metadata)
+        outputname_correlation <- gsub(filename, pattern="seqOut_taxonomy", replacement="countsmetadata_rho_TMM")
+        outputname_pval <- gsub(filename, pattern="seqOut_taxonomy", replacement="countsmetadata_pvalue_TMM")
+        write.table(counts_correlation_object[[1]], 
+                    paste0("data/correlations_countsmetadata/", outputname_correlation), 
+                    col.names=T, row.names=T, quote=F, sep="\t")
+        write.table(counts_correlation_object[[2]], 
+                    paste0("data/correlations_countsmetadata/", outputname_pval), 
                     col.names=T, row.names=T, quote=F, sep="\t")
     }
     
@@ -414,6 +482,9 @@ for(numberofsamplestomake in c(20,50,100,200,500,1000)){
         metadata_correlation_object[[2]] <- matrix(p.adjust(as.vector(as.matrix(metadata_correlation_object[[2]])), method='fdr'),ncol=ncol(metadata_correlation_object[[2]]))
         colnames(metadata_correlation_object[[2]]) <- colnames(metadata_correlation_object[[1]])
         rownames(metadata_correlation_object[[2]]) <- rownames(metadata_correlation_object[[1]])
+        # calculate correlations and pvalues (counts-metadata)
+        counts_correlation_object <- counts_metadata_correlation(tax_matrix, metadata_matrix) 
+        counts_correlation_object[[2]] <- p.adjust(counts_correlation_object[[2]], method="BH")
         # write output (taxon-taxon)
         outputname_correlation <- gsub(filename, pattern="seqOut_taxonomy", replacement="taxontaxon_rho_UQ")
         outputname_pval <- gsub(filename, pattern="seqOut_taxonomy", replacement="taxontaxon_pvalue_UQ")
@@ -431,6 +502,15 @@ for(numberofsamplestomake in c(20,50,100,200,500,1000)){
                     col.names=T, row.names=T, quote=F, sep="\t")
         write.table(metadata_correlation_object[[2]], 
                     paste0("data/correlations_taxonmetadata/", outputname_pval), 
+                    col.names=T, row.names=T, quote=F, sep="\t")
+        # write output (counts-metadata)
+        outputname_correlation <- gsub(filename, pattern="seqOut_taxonomy", replacement="countsmetadata_rho_UQ")
+        outputname_pval <- gsub(filename, pattern="seqOut_taxonomy", replacement="countsmetadata_pvalue_UQ")
+        write.table(counts_correlation_object[[1]], 
+                    paste0("data/correlations_countsmetadata/", outputname_correlation), 
+                    col.names=T, row.names=T, quote=F, sep="\t")
+        write.table(counts_correlation_object[[2]], 
+                    paste0("data/correlations_countsmetadata/", outputname_pval), 
                     col.names=T, row.names=T, quote=F, sep="\t")
     }
     
@@ -458,6 +538,9 @@ for(numberofsamplestomake in c(20,50,100,200,500,1000)){
         metadata_correlation_object[[2]] <- matrix(p.adjust(as.vector(as.matrix(metadata_correlation_object[[2]])), method='fdr'),ncol=ncol(metadata_correlation_object[[2]]))
         colnames(metadata_correlation_object[[2]]) <- colnames(metadata_correlation_object[[1]])
         rownames(metadata_correlation_object[[2]]) <- rownames(metadata_correlation_object[[1]])
+        # calculate correlations and pvalues (counts-metadata)
+        counts_correlation_object <- counts_metadata_correlation(tax_matrix, metadata_matrix) 
+        counts_correlation_object[[2]] <- p.adjust(counts_correlation_object[[2]], method="BH")
         # write output (taxon-taxon)
         outputname_correlation <- gsub(filename, pattern="seqOut_taxonomy", replacement="taxontaxon_rho_RLE")
         outputname_pval <- gsub(filename, pattern="seqOut_taxonomy", replacement="taxontaxon_pvalue_RLE")
@@ -475,6 +558,15 @@ for(numberofsamplestomake in c(20,50,100,200,500,1000)){
                     col.names=T, row.names=T, quote=F, sep="\t")
         write.table(metadata_correlation_object[[2]], 
                     paste0("data/correlations_taxonmetadata/", outputname_pval), 
+                    col.names=T, row.names=T, quote=F, sep="\t")
+        # write output (counts-metadata)
+        outputname_correlation <- gsub(filename, pattern="seqOut_taxonomy", replacement="countsmetadata_rho_RLE")
+        outputname_pval <- gsub(filename, pattern="seqOut_taxonomy", replacement="countsmetadata_pvalue_RLE")
+        write.table(counts_correlation_object[[1]], 
+                    paste0("data/correlations_countsmetadata/", outputname_correlation), 
+                    col.names=T, row.names=T, quote=F, sep="\t")
+        write.table(counts_correlation_object[[2]], 
+                    paste0("data/correlations_countsmetadata/", outputname_pval), 
                     col.names=T, row.names=T, quote=F, sep="\t")
     }
     
@@ -501,6 +593,9 @@ for(numberofsamplestomake in c(20,50,100,200,500,1000)){
         metadata_correlation_object[[2]] <- matrix(p.adjust(as.vector(as.matrix(metadata_correlation_object[[2]])), method='fdr'),ncol=ncol(metadata_correlation_object[[2]]))
         colnames(metadata_correlation_object[[2]]) <- colnames(metadata_correlation_object[[1]])
         rownames(metadata_correlation_object[[2]]) <- rownames(metadata_correlation_object[[1]])
+        # calculate correlations and pvalues (counts-metadata)
+        counts_correlation_object <- counts_metadata_correlation(tax_matrix, metadata_matrix) 
+        counts_correlation_object[[2]] <- p.adjust(counts_correlation_object[[2]], method="BH")
         # write output (taxon-taxon)
         outputname_correlation <- gsub(filename, pattern="seqOut_taxonomy", replacement="taxontaxon_rho_AST")
         outputname_pval <- gsub(filename, pattern="seqOut_taxonomy", replacement="taxontaxon_pvalue_AST")
@@ -518,6 +613,15 @@ for(numberofsamplestomake in c(20,50,100,200,500,1000)){
                     col.names=T, row.names=T, quote=F, sep="\t")
         write.table(metadata_correlation_object[[2]], 
                     paste0("data/correlations_taxonmetadata/", outputname_pval), 
+                    col.names=T, row.names=T, quote=F, sep="\t")
+        # write output (counts-metadata)
+        outputname_correlation <- gsub(filename, pattern="seqOut_taxonomy", replacement="countsmetadata_rho_AST")
+        outputname_pval <- gsub(filename, pattern="seqOut_taxonomy", replacement="countsmetadata_pvalue_AST")
+        write.table(counts_correlation_object[[1]], 
+                    paste0("data/correlations_countsmetadata/", outputname_correlation), 
+                    col.names=T, row.names=T, quote=F, sep="\t")
+        write.table(counts_correlation_object[[2]], 
+                    paste0("data/correlations_countsmetadata/", outputname_pval), 
                     col.names=T, row.names=T, quote=F, sep="\t")
     }
     
@@ -543,7 +647,10 @@ for(numberofsamplestomake in c(20,50,100,200,500,1000)){
         metadata_correlation_object[[2]] <- matrix(p.adjust(as.vector(as.matrix(metadata_correlation_object[[2]])), method='fdr'),ncol=ncol(metadata_correlation_object[[2]]))
         colnames(metadata_correlation_object[[2]]) <- colnames(metadata_correlation_object[[1]])
         rownames(metadata_correlation_object[[2]]) <- rownames(metadata_correlation_object[[1]])
-       # write output (taxon-taxon)
+        # calculate correlations and pvalues (counts-metadata)
+        counts_correlation_object <- counts_metadata_correlation(tax_matrix, metadata_matrix) 
+        counts_correlation_object[[2]] <- p.adjust(counts_correlation_object[[2]], method="BH")
+        # write output (taxon-taxon)
         outputname_correlation <- gsub(filename, pattern="seqOut_taxonomy", replacement="taxontaxon_rho_VST")
         outputname_pval <- gsub(filename, pattern="seqOut_taxonomy", replacement="taxontaxon_pvalue_VST")
         write.table(taxon_correlation_object[[1]], 
@@ -561,6 +668,15 @@ for(numberofsamplestomake in c(20,50,100,200,500,1000)){
         write.table(metadata_correlation_object[[2]], 
                     paste0("data/correlations_taxonmetadata/", outputname_pval), 
                     col.names=T, row.names=T, quote=F, sep="\t")
+        # write output (counts-metadata)
+        outputname_correlation <- gsub(filename, pattern="seqOut_taxonomy", replacement="countsmetadata_rho_VST")
+        outputname_pval <- gsub(filename, pattern="seqOut_taxonomy", replacement="countsmetadata_pvalue_VST")
+        write.table(counts_correlation_object[[1]], 
+                    paste0("data/correlations_countsmetadata/", outputname_correlation), 
+                    col.names=T, row.names=T, quote=F, sep="\t")
+        write.table(counts_correlation_object[[2]], 
+                    paste0("data/correlations_countsmetadata/", outputname_pval), 
+                    col.names=T, row.names=T, quote=F, sep="\t")    
     }
     
     
@@ -583,6 +699,9 @@ for(numberofsamplestomake in c(20,50,100,200,500,1000)){
         metadata_correlation_object[[2]] <- matrix(p.adjust(as.vector(as.matrix(metadata_correlation_object[[2]])), method='fdr'),ncol=ncol(metadata_correlation_object[[2]]))
         colnames(metadata_correlation_object[[2]]) <- colnames(metadata_correlation_object[[1]])
         rownames(metadata_correlation_object[[2]]) <- rownames(metadata_correlation_object[[1]])
+        # calculate correlations and pvalues (counts-metadata)
+        counts_correlation_object <- counts_metadata_correlation(tax_matrix, metadata_matrix)  
+        counts_correlation_object[[2]] <- p.adjust(counts_correlation_object[[2]], method="BH")
         # write output (taxon-taxon)
         outputname_correlation <- gsub(filename, pattern="RMP_taxonomy", replacement="taxontaxon_rho_RMP")
         outputname_pval <- gsub(filename, pattern="RMP_taxonomy", replacement="taxontaxon_pvalue_RMP")
@@ -600,6 +719,15 @@ for(numberofsamplestomake in c(20,50,100,200,500,1000)){
                     col.names=T, row.names=T, quote=F, sep="\t")
         write.table(metadata_correlation_object[[2]], 
                     paste0("data/correlations_taxonmetadata/", outputname_pval), 
+                    col.names=T, row.names=T, quote=F, sep="\t")
+        # write output (counts-metadata)
+        outputname_correlation <- gsub(filename, pattern="RMP_taxonomy", replacement="countsmetadata_rho_RMP")
+        outputname_pval <- gsub(filename, pattern="RMP_taxonomy", replacement="countsmetadata_pvalue_RMP")
+        write.table(counts_correlation_object[[1]], 
+                    paste0("data/correlations_countsmetadata/", outputname_correlation), 
+                    col.names=T, row.names=T, quote=F, sep="\t")
+        write.table(counts_correlation_object[[2]], 
+                    paste0("data/correlations_countsmetadata/", outputname_pval), 
                     col.names=T, row.names=T, quote=F, sep="\t")
     }
     
@@ -623,6 +751,9 @@ for(numberofsamplestomake in c(20,50,100,200,500,1000)){
         metadata_correlation_object[[2]] <- matrix(p.adjust(as.vector(as.matrix(metadata_correlation_object[[2]])), method='fdr'),ncol=ncol(metadata_correlation_object[[2]]))
         colnames(metadata_correlation_object[[2]]) <- colnames(metadata_correlation_object[[1]])
         rownames(metadata_correlation_object[[2]]) <- rownames(metadata_correlation_object[[1]])
+        # calculate correlations and pvalues (counts-metadata)
+        counts_correlation_object <- counts_metadata_correlation(tax_matrix, metadata_matrix) 
+        counts_correlation_object[[2]] <- p.adjust(counts_correlation_object[[2]], method="BH")
         # write output (taxon-taxon)
         outputname_correlation <- gsub(filename, pattern="QMP_taxonomy", replacement="taxontaxon_rho_QMP")
         outputname_pval <- gsub(filename, pattern="QMP_taxonomy", replacement="taxontaxon_pvalue_QMP")
@@ -641,9 +772,18 @@ for(numberofsamplestomake in c(20,50,100,200,500,1000)){
         write.table(metadata_correlation_object[[2]], 
                     paste0("data/correlations_taxonmetadata/", outputname_pval), 
                     col.names=T, row.names=T, quote=F, sep="\t")
+        # write output (counts-metadata)
+        outputname_correlation <- gsub(filename, pattern="QMP_taxonomy", replacement="countsmetadata_rho_QMP")
+        outputname_pval <- gsub(filename, pattern="QMP_taxonomy", replacement="countsmetadata_pvalue_QMP")
+        write.table(counts_correlation_object[[1]], 
+                    paste0("data/correlations_countsmetadata/", outputname_correlation), 
+                    col.names=T, row.names=T, quote=F, sep="\t")
+        write.table(counts_correlation_object[[2]], 
+                    paste0("data/correlations_countsmetadata/", outputname_pval), 
+                    col.names=T, row.names=T, quote=F, sep="\t")
     }
     
-    # QMP-NR
+    # QMP2
     for(file in list.files("data/qmp2_matrices", full.names = T)){
         # read file and select only those taxa to keep
         filename <- basename(file)
@@ -662,6 +802,9 @@ for(numberofsamplestomake in c(20,50,100,200,500,1000)){
         metadata_correlation_object[[2]] <- matrix(p.adjust(as.vector(as.matrix(metadata_correlation_object[[2]])), method='fdr'),ncol=ncol(metadata_correlation_object[[2]]))
         colnames(metadata_correlation_object[[2]]) <- colnames(metadata_correlation_object[[1]])
         rownames(metadata_correlation_object[[2]]) <- rownames(metadata_correlation_object[[1]])
+        # calculate correlations and pvalues (counts-metadata)
+        counts_correlation_object <- counts_metadata_correlation(tax_matrix, metadata_matrix) 
+        counts_correlation_object[[2]] <- p.adjust(counts_correlation_object[[2]], method="BH")
         # write output (taxon-taxon)
         outputname_correlation <- gsub(filename, pattern="QMP2_taxonomy", replacement="taxontaxon_rho_QMP-NR")
         outputname_pval <- gsub(filename, pattern="QMP2_taxonomy", replacement="taxontaxon_pvalue_QMP-NR")
@@ -679,6 +822,15 @@ for(numberofsamplestomake in c(20,50,100,200,500,1000)){
                     col.names=T, row.names=T, quote=F, sep="\t")
         write.table(metadata_correlation_object[[2]], 
                     paste0("data/correlations_taxonmetadata/", outputname_pval), 
+                    col.names=T, row.names=T, quote=F, sep="\t")
+        # write output (counts-metadata)
+        outputname_correlation <- gsub(filename, pattern="QMP2_taxonomy", replacement="countsmetadata_rho_QMP-NR")
+        outputname_pval <- gsub(filename, pattern="QMP2_taxonomy", replacement="countsmetadata_pvalue_QMP-NR")
+        write.table(counts_correlation_object[[1]], 
+                    paste0("data/correlations_countsmetadata/", outputname_correlation), 
+                    col.names=T, row.names=T, quote=F, sep="\t")
+        write.table(counts_correlation_object[[2]], 
+                    paste0("data/correlations_countsmetadata/", outputname_pval), 
                     col.names=T, row.names=T, quote=F, sep="\t")
     }
     
@@ -705,6 +857,7 @@ for(numberofsamplestomake in c(20,50,100,200,500,1000)){
         referencename <- gsub(filename, pattern=methodname, replacement="REAL")
         rhoname <- gsub(filename, pattern="pvalue", replacement="rho")
         referencerhoname <- gsub(referencename, pattern="pvalue", replacement="rho")
+        
         # read files
         test_file <- read.table(file, header=T, stringsAsFactors = F,sep="\t")
         reference_file <- read.table(paste0("data/correlations_taxontaxon/reference/", referencename),
@@ -713,7 +866,7 @@ for(numberofsamplestomake in c(20,50,100,200,500,1000)){
                                header=T, stringsAsFactors = F, sep="\t")
         referencerho_file <- read.table(paste0("data/correlations_taxontaxon/reference/", referencerhoname),
                                         header=T, stringsAsFactors = F, sep = "\t")
-       
+        
         test_significant <- c(unlist(test_file < significance_level))
         reference_significant <- c(unlist(reference_file < significance_level))
         test_sign <- sign(c(unlist(rho_file)))
@@ -747,7 +900,7 @@ for(numberofsamplestomake in c(20,50,100,200,500,1000)){
         drop_na()
     
     
-    write_tsv(results, paste0("output/number_samples/statistics_taxontaxon_correlation_", numberofsamplestomake, ".tsv"), col_names = T)
+    write_tsv(results, paste0("output/seq_depth/statistics_taxontaxon_correlation_", seqdepth, ".tsv"), col_names = T)
     
     
     # define parameters for significance and initialize vectors for the evaluation data (taxon-metadata)
@@ -761,7 +914,6 @@ for(numberofsamplestomake in c(20,50,100,200,500,1000)){
     matrixnum <- c()
     datatable <- c()
     scen <- c()
-    
     
     for(file in list.files("data/correlations_taxonmetadata/", recursive = F, pattern = "pvalue", full.names = T)){
         # define file name, method used and reference to be compared against
@@ -782,11 +934,11 @@ for(numberofsamplestomake in c(20,50,100,200,500,1000)){
         referencerho_file <- read.table(paste0("data/correlations_taxonmetadata/reference/", referencerhoname),
                                         header=T, stringsAsFactors = F, sep = "\t")
         
+       
         test_significant <- c(unlist(test_file < significance_level))
         reference_significant <- c(unlist(reference_file < significance_level))
         test_sign <- sign(c(unlist(rho_file)))
         reference_sign <- sign(c(unlist(referencerho_file)))
-    
         
         # populate evaluation vectors
         method <- c(method, methodname)
@@ -814,81 +966,84 @@ for(numberofsamplestomake in c(20,50,100,200,500,1000)){
         mutate(false_negative_percent=100*false_negative/(true_positive+true_negative+false_positive+false_negative)) %>% 
         dplyr::select(-c(true_positive,true_negative,false_positive,false_negative))
     
-    write_tsv(results, paste0("output/number_samples/statistics_taxonmetadata_correlation_", numberofsamplestomake, ".tsv"), col_names = T)
+    write_tsv(results, paste0("output/seq_depth/statistics_taxonmetadata_correlation_", seqdepth, ".tsv"), col_names = T)
 }
 
 
 #### Assess performance of the methods across different sample numbers (taxon-taxon) ####
-
-r20 <- read_tsv("output/number_samples/statistics_taxontaxon_correlation_20.tsv")
-r50 <- read_tsv("output/number_samples/statistics_taxontaxon_correlation_50.tsv")
-r100 <- read_tsv("output/number_samples/statistics_taxontaxon_correlation_100.tsv")
-r200 <- read_tsv("output/number_samples/statistics_taxontaxon_correlation_200.tsv")
-r500 <- read_tsv("output/number_samples/statistics_taxontaxon_correlation_500.tsv")
-r1000 <- read_tsv("output/number_samples/statistics_taxontaxon_correlation_1000.tsv")
-r20 <- r20 %>% mutate(num_samples="20")
-r50 <- r50 %>% mutate(num_samples="50")
-r100 <- r100 %>% mutate(num_samples="100")
-r200 <- r200 %>% mutate(num_samples="200")
-r500 <- r500 %>% mutate(num_samples="500")
-r1000 <- r1000 %>% mutate(num_samples="1000")
-rr <- bind_rows(r20,r50,r100,r200,r500,r1000)
+r05 <- read_tsv("output/seq_depth/statistics_taxontaxon_correlation_9.21.tsv")
+r10 <- read_tsv("output/seq_depth/statistics_taxontaxon_correlation_10.3.tsv")
+r20 <- read_tsv("output/seq_depth/statistics_taxontaxon_correlation_10.81.tsv")
+r50 <- read_tsv("output/seq_depth/statistics_taxontaxon_correlation_11.51.tsv")
+r100 <- read_tsv("output/seq_depth/statistics_taxontaxon_correlation_12.2.tsv")
+r500 <- read_tsv("output/seq_depth/statistics_taxontaxon_correlation_13.12.tsv")
+r05 <- r05 %>% mutate(num_samples="10000") #transform from log to normal scale and round
+r10 <- r10 %>% mutate(num_samples="30000")
+r20 <- r20 %>% mutate(num_samples="50000")
+r50 <- r50 %>% mutate(num_samples="100000")
+r100 <- r100 %>% mutate(num_samples="200000")
+r500 <- r500 %>% mutate(num_samples="500000")
+rr <- bind_rows(r05,r10,r20,r50,r100,r500)
 rr$method <- factor(rr$method, levels=c("AST", "CLR", "RMP", "CSS", "GMPR",
                                         "RLE", "TMM", "UQ", "VST",
                                         "QMP", "QMP-NR"))
-rr$num_samples <- factor(rr$num_samples, levels=c("20", "50", "100", 
-                                                  "200", "500", "1000"))
+rr$num_samples <- factor(rr$num_samples, levels=c("10000", "30000", "50000", "100000", "200000", 
+                                                  "500000"))
 rr$spread <- factor(rr$spread, levels=c("low", "high"))
 rr$scen <- factor(rr$scen, levels=c("Healthy", "Dysbiosis", "Blooming"))
 
 p1 <- ggline(rr %>% dplyr::filter(datatable=="all"), x = "num_samples", y = "Precision", 
-             add = c("mean_se"),
-             color = "method", palette = "Spectral", facet.by = "scen", xlab="Number of samples") + theme_bw()
-ggsave(p1, filename="output/number_samples/plot_samplesize_taxontaxon_precision.pdf", device="pdf", width=11, height=5)
+             add = c("mean_sd"),
+             color = "method", palette = "Spectral", facet.by = "scen",
+             xlab="Sequencing depth") + theme_bw()
+ggsave(p1, filename="output/seq_depth/plot_depth_taxontaxon_precision.pdf", device="pdf", width=11, height=5)
 p1 <- ggline(rr %>% dplyr::filter(datatable=="all"), x = "num_samples", y = "Recall", 
              add = c("mean_se"),
-             color = "method", palette = "Spectral", facet.by = "scen", xlab="Number of samples") + theme_bw()
-ggsave(p1, filename="output/number_samples/plot_samplesize_taxontaxon_recall.pdf", device="pdf", width=11, height=5)
+             color = "method", palette = "Spectral", facet.by = "scen",
+             xlab="Sequencing depth") + theme_bw()
+ggsave(p1, filename="output/seq_depth/plot_depth_taxontaxon_recall.pdf", device="pdf", width=11, height=5)
 p1 <- ggline(rr %>% dplyr::filter(datatable=="all"), x = "num_samples", y = "false_positive_percent", 
              add = c("mean_se"),
-             color = "method", palette = "Spectral", facet.by = "scen", xlab="Number of samples") + theme_bw()
-ggsave(p1, filename="output/number_samples/plot_samplesize_taxontaxon_FPS.pdf", device="pdf", width=11, height=5)
+             color = "method", palette = "Spectral", facet.by = "scen",
+             xlab="Sequencing depth") + theme_bw()
+ggsave(p1, filename="output/seq_depth/plot_depth_taxontaxon_FPS.pdf", device="pdf", width=11, height=5)
 
 
 #### Assess performance of the methods across different sample numbers (taxon-metadata) ####
-
-r20 <- read_tsv("output/number_samples/statistics_taxonmetadata_correlation_20.tsv")
-r50 <- read_tsv("output/number_samples/statistics_taxonmetadata_correlation_50.tsv")
-r100 <- read_tsv("output/number_samples/statistics_taxonmetadata_correlation_100.tsv")
-r200 <- read_tsv("output/number_samples/statistics_taxonmetadata_correlation_200.tsv")
-r500 <- read_tsv("output/number_samples/statistics_taxonmetadata_correlation_500.tsv")
-r1000 <- read_tsv("output/number_samples/statistics_taxonmetadata_correlation_1000.tsv")
-r20 <- r20 %>% mutate(num_samples="20")
-r50 <- r50 %>% mutate(num_samples="50")
-r100 <- r100 %>% mutate(num_samples="100")
-r200 <- r200 %>% mutate(num_samples="200")
-r500 <- r500 %>% mutate(num_samples="500")
-r1000 <- r1000 %>% mutate(num_samples="1000")
-rr <- bind_rows(r20,r50,r100,r200,r500,r1000)
+r05 <- read_tsv("output/seq_depth/statistics_taxonmetadata_correlation_9.21.tsv")
+r10 <- read_tsv("output/seq_depth/statistics_taxonmetadata_correlation_10.3.tsv")
+r20 <- read_tsv("output/seq_depth/statistics_taxonmetadata_correlation_10.81.tsv")
+r50 <- read_tsv("output/seq_depth/statistics_taxonmetadata_correlation_11.51.tsv")
+r100 <- read_tsv("output/seq_depth/statistics_taxonmetadata_correlation_12.2.tsv")
+r500 <- read_tsv("output/seq_depth/statistics_taxonmetadata_correlation_13.12.tsv")
+r05 <- r05 %>% mutate(num_samples="10000") #transform from log to normal scale and round
+r10 <- r10 %>% mutate(num_samples="30000")
+r20 <- r20 %>% mutate(num_samples="50000")
+r50 <- r50 %>% mutate(num_samples="100000")
+r100 <- r100 %>% mutate(num_samples="200000")
+r500 <- r500 %>% mutate(num_samples="500000")
+rr <- bind_rows(r05,r10,r20,r50,r100,r500)
 rr$method <- factor(rr$method, levels=c("AST", "CLR", "RMP", "CSS", "GMPR",
                                         "RLE", "TMM", "UQ", "VST",
                                         "QMP", "QMP-NR"))
-rr$num_samples <- factor(rr$num_samples, levels=c("20", "50", "100", 
-                                                  "200", "500", "1000"))
+rr$num_samples <- factor(rr$num_samples, levels=c("10000", "30000", "50000", "100000", "200000", 
+                                                  "500000"))
 rr$spread <- factor(rr$spread, levels=c("low", "high"))
 rr$scen <- factor(rr$scen, levels=c("Healthy", "Dysbiosis", "Blooming"))
 
 p1 <- ggline(rr %>% dplyr::filter(datatable=="all"), x = "num_samples", y = "Precision", 
              add = c("mean_se"),
-             color = "method", palette = "Spectral", facet.by = "scen", xlab="Number of samples") + theme_bw()
-ggsave(p1, filename="output/number_samples/plot_samplesize_taxonmetadata_precision.pdf", device="pdf", width=11, height=5)
+             color = "method", palette = "Spectral", facet.by = "scen",
+             xlab="Sequencing depth") + theme_bw()
+ggsave(p1, filename="output/seq_depth/plot_depth_taxonmetadata_precision.pdf", device="pdf", width=11, height=5)
 p1 <- ggline(rr %>% dplyr::filter(datatable=="all"), x = "num_samples", y = "Recall", 
              add = c("mean_se"),
-             color = "method", palette = "Spectral", facet.by = "scen", xlab="Number of samples") + theme_bw()
-ggsave(p1, filename="output/number_samples/plot_samplesize_taxonmetadata_recall.pdf", device="pdf", width=11, height=5)
+             color = "method", palette = "Spectral", facet.by = "scen",
+             xlab="Sequencing depth") + theme_bw()
+ggsave(p1, filename="output/seq_depth/plot_depth_taxonmetadata_recall.pdf", device="pdf", width=11, height=5)
 p1 <- ggline(rr %>% dplyr::filter(datatable=="all"), x = "num_samples", y = "false_positive_percent", 
              add = c("mean_se"),
-             color = "method", palette = "Spectral", facet.by = "scen", xlab="Number of samples") + theme_bw()
-ggsave(p1, filename="output/number_samples/plot_samplesize_taxonmetadata_FPS.pdf", device="pdf", width=11, height=5)
-
+             color = "method", palette = "Spectral", facet.by = "scen", 
+             xlab="Sequencing depth") + theme_bw()
+ggsave(p1, filename="output/seq_depth/plot_depth_taxonmetadata_FPS.pdf", device="pdf", width=11, height=5)
 

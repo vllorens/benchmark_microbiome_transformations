@@ -18,3 +18,5 @@ output/rawdataplots/*
 output/qmp_qmpnr/*
 output/number_samples/*
 output/microbial_spread/*
+output/proportionality/*
+output/
