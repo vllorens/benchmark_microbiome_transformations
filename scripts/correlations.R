@@ -59,13 +59,14 @@ system("mkdir -p output/taxonmetadata")
 # clean these folders and remove all previous results (if any) 
 system("rm -r data/correlations_taxontaxon/*")
 system("rm -r data/correlations_taxonmetadata/*")
-system("rm -r output/taxontaxon")
-system("rm -r output/taxonmetadata")
+system("rm -r output/taxontaxon/*")
+system("rm -r output/taxonmetadata/*")
 
 # create additional folders for the reference data (on the real matrices)
 system("mkdir -p data/correlations_taxontaxon/reference")
 system("mkdir -p data/correlations_taxonmetadata/reference")
 
+set.seed(777)
 
 #### Calculate correlations for all methods ####
 
@@ -609,77 +610,18 @@ for(file in list.files("data/correlations_taxontaxon", recursive = F, pattern = 
     referencerho_file <- read.table(paste0("data/correlations_taxontaxon/reference/", referencerhoname),
                                     header=T, stringsAsFactors = F, sep = "\t")
     
-    # read file 
-    tax_matrix <- read.table(paste0("data/tax_matrices/taxonomy_", matrixname, "_", spreadname, "_spread_", scenarioname,".tsv"), header=T, stringsAsFactors=F, sep="\t") %>% 
-        as.matrix()
-    
-    # read total counts file
-    original_counts <- tax_matrix %>% 
-        apply(.,2,sum)
-    
-    # correlation taxa vs cell counts
-    counts_correlation_object <- counts_taxa_correlation(tax_matrix, original_counts)
-    counts_correlation_object[[2]] <- p.adjust(counts_correlation_object[[2]], "BH")
-    
-    not_cor <- names(which(counts_correlation_object[[2]]>0.05))
-    neg_cor <- names(which(counts_correlation_object[[2]]<0.05 & counts_correlation_object[[1]]<0))
-    pos_cor <- names(which(counts_correlation_object[[2]]<0.05 & counts_correlation_object[[1]]>0))
-    
-    
     lowerTriangle(test_file) <- upperTriangle(test_file, byrow = T)
     lowerTriangle(reference_file) <- upperTriangle(reference_file, byrow = T)
     lowerTriangle(rho_file) <- upperTriangle(rho_file, byrow = T)
     lowerTriangle(referencerho_file) <- upperTriangle(referencerho_file, byrow = T)
     
-    # negative correlation to cell counts
-    if(length(neg_cor)>0){
-        test_file_neg <- test_file[neg_cor,]
-        reference_file_neg <- reference_file[neg_cor,]
-        rho_file_neg <- rho_file[neg_cor,]
-        referencerho_file_neg <- referencerho_file[neg_cor,]     
-    } else{
-        test_file_neg <- NA
-        reference_file_neg <- NA
-        rho_file_neg <- NA
-        referencerho_file_neg <- NA    
-    }
-    
-    
-    # positive correlation to cell counts
-    test_file_pos <- test_file[pos_cor,]
-    reference_file_pos <- reference_file[pos_cor,]
-    rho_file_pos <- rho_file[pos_cor,]
-    referencerho_file_pos <- referencerho_file[pos_cor,]
-    
-    # no correlation to cell counts
-    test_file_not <- test_file[not_cor,]
-    reference_file_not <- reference_file[not_cor,]
-    rho_file_not <- rho_file[not_cor,]
-    referencerho_file_not <- referencerho_file[not_cor,]
     
     # all
     test_significant <- c(unlist(test_file < significance_level))
     reference_significant <- c(unlist(reference_file < significance_level))
     test_sign <- sign(c(unlist(rho_file)))
     reference_sign <- sign(c(unlist(referencerho_file)))
-    
-    # negative
-    test_significant_neg <- c(unlist(test_file_neg < significance_level))
-    reference_significant_neg <- c(unlist(reference_file_neg < significance_level))
-    test_sign_neg <- sign(c(unlist(rho_file_neg)))
-    reference_sign_neg <- sign(c(unlist(referencerho_file_neg)))
-    
-    # positive
-    test_significant_pos <- c(unlist(test_file_pos < significance_level))
-    reference_significant_pos <- c(unlist(reference_file_pos < significance_level))
-    test_sign_pos <- sign(c(unlist(rho_file_pos)))
-    reference_sign_pos <- sign(c(unlist(referencerho_file_pos)))
-    
-    # no correlation
-    test_significant_not <- c(unlist(test_file_not < significance_level))
-    reference_significant_not <- c(unlist(reference_file_not < significance_level))
-    test_sign_not <- sign(c(unlist(rho_file_not)))
-    reference_sign_not <- sign(c(unlist(referencerho_file_not)))
+
     
     
     # populate evaluation vectors
@@ -692,33 +634,6 @@ for(file in list.files("data/correlations_taxontaxon", recursive = F, pattern = 
     false_positive <- c(false_positive, length(which(test_significant & !reference_significant))+length(which(test_significant & reference_significant & test_sign!=reference_sign)))
     true_negative <- c(true_negative, length(which(!test_significant & !reference_significant)))
     false_negative <- c(false_negative, length(which(!test_significant & reference_significant)))
-    method <- c(method, methodname)
-    spread <- c(spread, spreadname)
-    matrixnum <- c(matrixnum, matrixname)
-    scen <- c(scen, scenarioname)
-    datatable <- c(datatable, "neg")
-    true_positive <- c(true_positive, length(which(test_significant_neg & reference_significant_neg & test_sign_neg==reference_sign_neg)))
-    false_positive <- c(false_positive, length(which(test_significant_neg & !reference_significant_neg))+length(which(test_significant_neg & reference_significant_neg & test_sign_neg!=reference_sign_neg)))
-    true_negative <- c(true_negative, length(which(!test_significant_neg & !reference_significant_neg)))
-    false_negative <- c(false_negative, length(which(!test_significant_neg & reference_significant_neg)))
-    method <- c(method, methodname)
-    spread <- c(spread, spreadname)
-    matrixnum <- c(matrixnum, matrixname)
-    scen <- c(scen, scenarioname)
-    datatable <- c(datatable, "pos")
-    true_positive <- c(true_positive, length(which(test_significant_pos & reference_significant_pos & test_sign_pos==reference_sign_pos)))
-    false_positive <- c(false_positive, length(which(test_significant_pos & !reference_significant_pos))+length(which(test_significant_pos & reference_significant_pos & test_sign_pos!=reference_sign_pos)))
-    true_negative <- c(true_negative, length(which(!test_significant_pos & !reference_significant_pos)))
-    false_negative <- c(false_negative, length(which(!test_significant_pos & reference_significant_pos)))
-    method <- c(method, methodname)
-    spread <- c(spread, spreadname)
-    matrixnum <- c(matrixnum, matrixname)
-    scen <- c(scen, scenarioname)
-    datatable <- c(datatable, "not")
-    true_positive <- c(true_positive, length(which(test_significant_not & reference_significant_not & test_sign_not==reference_sign_not)))
-    false_positive <- c(false_positive, length(which(test_significant_not & !reference_significant_not))+length(which(test_significant_not & reference_significant_not & test_sign_not!=reference_sign_not)))
-    true_negative <- c(true_negative, length(which(!test_significant_not & !reference_significant_not)))
-    false_negative <- c(false_negative, length(which(!test_significant_not & reference_significant_not)))
 }
 
 # write results table
@@ -739,58 +654,73 @@ results <- results %>%
 
 
 write_tsv(results, "output/taxontaxon/statistics_taxontaxon_correlation.tsv", col_names = T)
-results$method <- factor(results$method, levels=c("AST", "CLR", "RMP", "CSS","GMPR",
-                                                  "RLE", "TMM", "UQ", "VST",
-                                                  "QMP", "QMP-NR"))
+method_type <- tibble(method=c("RMP", "AST", "CLR", "CSS", "GMPR",
+                               "UQ", "RLE", "TMM", "VST", "QMP", "QMP-NR"),
+                      method_type=c("Traditional transformations", 
+                                    rep("Compositional transformations", times=8),
+                                    rep("Quantitative transformations", times=2)))
+
+results <- results %>% 
+    left_join(method_type, by="method")
+
+results$method_type <- factor(results$method_type, 
+                                  levels=c("Sequencing", "Traditional transformations", 
+                                           "Compositional transformations",
+                                           "Quantitative transformations"))
+results$method <- factor(results$method, levels=c("RMP", "AST", "CLR", "CSS", "GMPR",
+                                                  "UQ", "RLE", "TMM", "VST", "QMP", "QMP-NR"))
 
 results$spread <- factor(results$spread, levels=c("low", "high"))
 results$scen <- factor(results$scen, levels=c("Healthy", "Dysbiosis", "Blooming"))
 results_all <- results %>% dplyr::filter(datatable=="all")
-results_pos <- results %>% dplyr::filter(datatable=="pos")
-results_neg <- results %>% dplyr::filter(datatable=="neg")
+
 
 # plot results
-ggboxplot(results_all, x="method", y="Precision", fill="method", alpha=0.5,
+custom_palette=get_palette("Spectral",11)[c(2,5,10)]
+ggboxplot(results_all, x="method", y="Precision", fill="method_type", alpha=0.5,
           facet.by = c( "scen"),
           ylab="Precision [TP/TP+FP]",
-          palette="Spectral",
+          palette=custom_palette,legend.title="Method type",
           main="Taxon-taxon correlations") + 
-    ggsignif::stat_signif(comparisons = list(c("QMP", "QMP-NR")), test = "wilcox.test", FDR = T) +
-    geom_point(aes(fill=method), size=2, shape=21, colour="grey20",
+    ggsignif::stat_signif(comparisons = list(c("QMP", "QMP-NR")), test = "t.test", FDR = T) +
+    geom_point(aes(fill=method_type), size=2, shape=21, colour="grey20",
                position=position_jitter(width=0.2, height=0)) +
-    theme_bw()+ rotate_x_text() +
-    theme(plot.title = element_text(face = "bold")) + theme(axis.title = element_text(size = 14), 
-                                                            axis.text.x = element_text(size = 12), 
-                                                            axis.text.y = element_text(size = 12), 
-                                                            plot.title = element_text(size = 16)) +labs(x = NULL)
+    theme_bw()+ rotate_x_text(45) +
+    theme(panel.grid.major = element_line(colour = "gray97"), 
+          panel.grid.minor = element_line(colour = "gray97")) + 
+    theme(axis.title = element_text(face = "bold"), 
+          plot.title = element_text(size = 14, 
+                                    face = "bold"), legend.title = element_text(face = "bold"))
 ggsave(filename = "output/taxontaxon/plot_taxontaxon_precision.pdf", device = "pdf", width = 11, height=5)
 ggboxplot(results_all, x="method", y="Recall", alpha=0.5,
-          fill="method", facet.by = c("scen"), 
+          fill="method_type", facet.by = c("scen"), 
           ylab="Recall [TP/TP+FN]",
-          palette="Spectral",
+          palette=custom_palette,legend.title="Method type",
           main="Taxon-taxon correlations") + 
-    geom_point(aes(fill=method), size=2, shape=21, colour="grey20",
+    ggsignif::stat_signif(comparisons = list(c("QMP", "QMP-NR")), test = "t.test", FDR = T) +
+    geom_point(aes(fill=method_type), size=2, shape=21, colour="grey20",
                position=position_jitter(width=0.2, height=0)) +
-    theme_bw() + rotate_x_text() + 
-    theme(plot.title = element_text(face = "bold")) +
-    ggsignif::stat_signif(comparisons = list(c("QMP", "QMP-NR")), test = "wilcox.test", FDR = T) + theme(axis.title = element_text(size = 14), 
-                                                                                                         axis.text.x = element_text(size = 12), 
-                                                                                                         axis.text.y = element_text(size = 12), 
-                                                                                                         plot.title = element_text(size = 16)) +labs(x = NULL)
+    theme_bw()+ rotate_x_text(45) +
+    theme(panel.grid.major = element_line(colour = "gray97"), 
+          panel.grid.minor = element_line(colour = "gray97")) + 
+    theme(axis.title = element_text(face = "bold"), 
+          plot.title = element_text(size = 14, 
+                                    face = "bold"), legend.title = element_text(face = "bold"))
 ggsave(filename = "output/taxontaxon/plot_taxontaxon_recall.pdf", device = "pdf", width = 11, height=5)
 ggboxplot(results_all, x="method", y="false_positive_percent", alpha=0.5,
-          fill="method", facet.by = c( "scen"), 
+          fill="method_type", facet.by = c( "scen"), 
           ylab="% False positives",
-          palette="Spectral",
+          palette=custom_palette,legend.title="Method type",
           main="Taxon-taxon correlations") + 
-    ggsignif::stat_signif(comparisons = list(c("QMP", "QMP-NR")), test = "wilcox.test", FDR = T) +
-    geom_point(aes(fill=method), size=2, shape=21, colour="grey20",
+    ggsignif::stat_signif(comparisons = list(c("QMP", "QMP-NR")), test = "t.test", FDR = T) +
+    geom_point(aes(fill=method_type), size=2, shape=21, colour="grey20",
                position=position_jitter(width=0.2, height=0)) +
-    theme_bw()+ rotate_x_text() +
-    theme(plot.title = element_text(face = "bold")) + theme(axis.title = element_text(size = 14), 
-                                                            axis.text.x = element_text(size = 12), 
-                                                            axis.text.y = element_text(size = 12), 
-                                                            plot.title = element_text(size = 16)) +labs(x = NULL)
+    theme_bw()+ rotate_x_text(45) +
+    theme(panel.grid.major = element_line(colour = "gray97"), 
+          panel.grid.minor = element_line(colour = "gray97")) + 
+    theme(axis.title = element_text(face = "bold"), 
+          plot.title = element_text(size = 14, 
+                                    face = "bold"), legend.title = element_text(face = "bold"))
 ggsave(filename = "output/taxontaxon/plot_taxontaxon_FP.pdf", device = "pdf", width = 11, height=5)
 
 
@@ -831,47 +761,7 @@ for(file in list.files("data/correlations_taxonmetadata/", recursive = F, patter
     referencerho_file <- read.table(paste0("data/correlations_taxonmetadata/reference/", referencerhoname),
                                     header=T, stringsAsFactors = F, sep = "\t")
     
-    # read file 
-    tax_matrix <- read.table(paste0("data/tax_matrices/taxonomy_", matrixname, "_", spreadname, "_spread_", scenarioname, ".tsv"), header=T, stringsAsFactors=F, sep="\t") %>% 
-        as.matrix()
-    
-    # read total counts file
-    original_counts <- tax_matrix %>% 
-        apply(.,2,sum)
-    
-    # correlation taxa vs cell counts
-    counts_correlation_object <- counts_taxa_correlation(tax_matrix, original_counts)
-    counts_correlation_object[[2]] <- p.adjust(counts_correlation_object[[2]], "BH")
-    
-    not_cor <- names(which(counts_correlation_object[[2]]>0.05))
-    neg_cor <- names(which(counts_correlation_object[[2]]<0.05 & counts_correlation_object[[1]]<0))
-    pos_cor <- names(which(counts_correlation_object[[2]]<0.05 & counts_correlation_object[[1]]>0))
-    
-    
-    # negative correlation to cell counts
-    if(length(neg_cor)>0){
-        test_file_neg <- test_file[neg_cor,]
-        reference_file_neg <- reference_file[neg_cor,]
-        rho_file_neg <- rho_file[neg_cor,]
-        referencerho_file_neg <- referencerho_file[neg_cor,]     
-    } else{
-        test_file_neg <- NA
-        reference_file_neg <- NA
-        rho_file_neg <- NA
-        referencerho_file_neg <- NA    
-    }
-    
-    # positive correlation to cell counts
-    test_file_pos <- test_file[pos_cor,]
-    reference_file_pos <- reference_file[pos_cor,]
-    rho_file_pos <- rho_file[pos_cor,]
-    referencerho_file_pos <- referencerho_file[pos_cor,]
-    
-    # no correlation to cell counts
-    test_file_not <- test_file[not_cor,]
-    reference_file_not <- reference_file[not_cor,]
-    rho_file_not <- rho_file[not_cor,]
-    referencerho_file_not <- referencerho_file[not_cor,]
+   
     
     # all
     test_significant <- c(unlist(test_file < significance_level))
@@ -879,24 +769,7 @@ for(file in list.files("data/correlations_taxonmetadata/", recursive = F, patter
     test_sign <- sign(c(unlist(rho_file)))
     reference_sign <- sign(c(unlist(referencerho_file)))
     
-    # negative
-    test_significant_neg <- c(unlist(test_file_neg < significance_level))
-    reference_significant_neg <- c(unlist(reference_file_neg < significance_level))
-    test_sign_neg <- sign(c(unlist(rho_file_neg)))
-    reference_sign_neg <- sign(c(unlist(referencerho_file_neg)))
-    
-    # positive
-    test_significant_pos <- c(unlist(test_file_pos < significance_level))
-    reference_significant_pos <- c(unlist(reference_file_pos < significance_level))
-    test_sign_pos <- sign(c(unlist(rho_file_pos)))
-    reference_sign_pos <- sign(c(unlist(referencerho_file_pos)))
-    
-    # no correlation
-    test_significant_not <- c(unlist(test_file_not < significance_level))
-    reference_significant_not <- c(unlist(reference_file_not < significance_level))
-    test_sign_not <- sign(c(unlist(rho_file_not)))
-    reference_sign_not <- sign(c(unlist(referencerho_file_not)))
-    
+   
     
     # populate evaluation vectors
     method <- c(method, methodname)
@@ -908,33 +781,7 @@ for(file in list.files("data/correlations_taxonmetadata/", recursive = F, patter
     false_positive <- c(false_positive, length(which(test_significant & !reference_significant))+length(which(test_significant & reference_significant & test_sign!=reference_sign)))
     true_negative <- c(true_negative, length(which(!test_significant & !reference_significant)))
     false_negative <- c(false_negative, length(which(!test_significant & reference_significant)))
-    method <- c(method, methodname)
-    spread <- c(spread, spreadname)
-    scen <- c(scen, scenarioname)
-    matrixnum <- c(matrixnum, matrixname)
-    datatable <- c(datatable, "neg")
-    true_positive <- c(true_positive, length(which(test_significant_neg & reference_significant_neg & test_sign_neg==reference_sign_neg)))
-    false_positive <- c(false_positive, length(which(test_significant_neg & !reference_significant_neg))+length(which(test_significant_neg & reference_significant_neg & test_sign_neg!=reference_sign_neg)))
-    true_negative <- c(true_negative, length(which(!test_significant_neg & !reference_significant_neg)))
-    false_negative <- c(false_negative, length(which(!test_significant_neg & reference_significant_neg)))
-    method <- c(method, methodname)
-    scen <- c(scen, scenarioname)
-    spread <- c(spread, spreadname)
-    matrixnum <- c(matrixnum, matrixname)
-    datatable <- c(datatable, "pos")
-    true_positive <- c(true_positive, length(which(test_significant_pos & reference_significant_pos & test_sign_pos==reference_sign_pos)))
-    false_positive <- c(false_positive, length(which(test_significant_pos & !reference_significant_pos))+length(which(test_significant_pos & reference_significant_pos & test_sign_pos!=reference_sign_pos)))
-    true_negative <- c(true_negative, length(which(!test_significant_pos & !reference_significant_pos)))
-    false_negative <- c(false_negative, length(which(!test_significant_pos & reference_significant_pos)))
-    method <- c(method, methodname)
-    spread <- c(spread, spreadname)
-    scen <- c(scen, scenarioname)
-    matrixnum <- c(matrixnum, matrixname)
-    datatable <- c(datatable, "not")
-    true_positive <- c(true_positive, length(which(test_significant_not & reference_significant_not & test_sign_not==reference_sign_not)))
-    false_positive <- c(false_positive, length(which(test_significant_not & !reference_significant_not))+length(which(test_significant_not & reference_significant_not & test_sign_not!=reference_sign_not)))
-    true_negative <- c(true_negative, length(which(!test_significant_not & !reference_significant_not)))
-    false_negative <- c(false_negative, length(which(!test_significant_not & reference_significant_not)))
+    
 }
 
 # write results table
@@ -953,57 +800,71 @@ results <- results %>%
     dplyr::select(-c(true_positive,true_negative,false_positive,false_negative))
 
 write_tsv(results, "output/taxonmetadata/statistics_taxonmetadata_correlation.tsv", col_names = T)
-results$method <- factor(results$method, levels=c("AST", "CLR", "RMP", "CSS","GMPR",
-                                                  "RLE", "TMM", "UQ", "VST",
-                                                  "QMP", "QMP-NR"))
+method_type <- tibble(method=c("RMP", "AST", "CLR", "CSS", "GMPR",
+                               "UQ", "RLE", "TMM", "VST", "QMP", "QMP-NR"),
+                      method_type=c("Traditional transformations", 
+                                    rep("Compositional transformations", times=8),
+                                    rep("Quantitative transformations", times=2)))
+
+results <- results %>% 
+    left_join(method_type, by="method")
+
+results$method_type <- factor(results$method_type, 
+                              levels=c("Sequencing", "Traditional transformations", 
+                                       "Compositional transformations",
+                                       "Quantitative transformations"))
+results$method <- factor(results$method, levels=c("RMP", "AST", "CLR", "CSS", "GMPR",
+                                                  "UQ", "RLE", "TMM", "VST", "QMP", "QMP-NR"))
 
 results$spread <- factor(results$spread, levels=c("low", "high"))
 results$scen <- factor(results$scen, levels=c("Healthy", "Dysbiosis", "Blooming"))
 results_all <- results %>% dplyr::filter(datatable=="all")
-results_pos <- results %>% dplyr::filter(datatable=="pos")
-results_neg <- results %>% dplyr::filter(datatable=="neg")
-results_not <- results %>% dplyr::filter(datatable=="not")
 
+
+custom_palette=get_palette("Spectral",11)[c(2,5,10)]
 # all data
 ggboxplot(results_all, x="method", y="Precision", alpha=0.5,
-          fill="method", facet.by = c( "scen"), 
+          fill="method_type", facet.by = c( "scen"), 
           ylab="Precision [TP/TP+FP]",
-          palette="Spectral",
+          palette=custom_palette, legend.title="Method type",
           main="Taxon-metadata correlations") + 
-    ggsignif::stat_signif(comparisons = list(c("QMP", "QMP-NR")), test = "wilcox.test", FDR = T) +
-    geom_point(aes(fill=method), size=2, shape=21, colour="grey20",
+    ggsignif::stat_signif(comparisons = list(c("QMP", "QMP-NR")), test = "t.test", FDR = T) +
+    geom_point(aes(fill=method_type), size=2, shape=21, colour="grey20",
                position=position_jitter(width=0.2, height=0)) +
-    theme_bw()+ rotate_x_text() +
-    theme(plot.title = element_text(face = "bold")) + theme(axis.title = element_text(size = 14), 
-                                                            axis.text.x = element_text(size = 12), 
-                                                            axis.text.y = element_text(size = 12), 
-                                                            plot.title = element_text(size = 16)) +labs(x = NULL)
+    theme_bw()+ rotate_x_text(45) +
+    theme(panel.grid.major = element_line(colour = "gray97"), 
+          panel.grid.minor = element_line(colour = "gray97")) + 
+    theme(axis.title = element_text(face = "bold"), 
+          plot.title = element_text(size = 14, 
+                                    face = "bold"), legend.title = element_text(face = "bold"))
 ggsave(filename = "output/taxonmetadata/plot_taxonmetadata_precision.svg", device = "svg", width = 11, height=5)
 ggboxplot(results_all, x="method", y="Recall", alpha=0.5,
-          fill="method", facet.by = c("scen"), 
+          fill="method_type", facet.by = c("scen"), 
           ylab="Recall [TP/TP+FN]",
-          palette="Spectral",
+          palette=custom_palette,legend.title="Method type",
           main="Taxon-metadata correlations") + 
-    ggsignif::stat_signif(comparisons = list(c("QMP", "QMP-NR")), test = "wilcox.test", FDR = T) +
-    geom_point(aes(fill=method), size=2, shape=21, colour="grey20",
+    ggsignif::stat_signif(comparisons = list(c("QMP", "QMP-NR")), test = "t.test", FDR = T) +
+    geom_point(aes(fill=method_type), size=2, shape=21, colour="grey20",
                position=position_jitter(width=0.2, height=0)) +
-    theme_bw()+ rotate_x_text() +
-    theme(plot.title = element_text(face = "bold")) + theme(axis.title = element_text(size = 14), 
-                                                            axis.text.x = element_text(size = 12), 
-                                                            axis.text.y = element_text(size = 12), 
-                                                            plot.title = element_text(size = 16)) +labs(x = NULL)
+    theme_bw()+ rotate_x_text(45) +
+    theme(panel.grid.major = element_line(colour = "gray97"), 
+          panel.grid.minor = element_line(colour = "gray97")) + 
+    theme(axis.title = element_text(face = "bold"), 
+          plot.title = element_text(size = 14, 
+                                    face = "bold"), legend.title = element_text(face = "bold"))
 ggsave(filename = "output/taxonmetadata/plot_taxonmetadata_recall.svg", device = "svg", width = 11, height=5)
 ggboxplot(results_all, x="method", y="false_positive_percent", alpha=0.5,
-          fill="method", facet.by = c( "scen"), 
+          fill="method_type", facet.by = c( "scen"), 
           ylab="% False positives",
-          palette="Spectral",
+          palette=custom_palette,legend.title="Method type",
           main="Taxon-metadata correlations") + 
-    ggsignif::stat_signif(comparisons = list(c("QMP", "QMP-NR")), test = "wilcox.test", FDR = T) +
-    geom_point(aes(fill=method), size=2, shape=21, colour="grey20",
+    ggsignif::stat_signif(comparisons = list(c("QMP", "QMP-NR")), test = "t.test", FDR = T) +
+    geom_point(aes(fill=method_type), size=2, shape=21, colour="grey20",
                position=position_jitter(width=0.2, height=0)) +
-    theme_bw()+ rotate_x_text() +
-    theme(plot.title = element_text(face = "bold")) + theme(axis.title = element_text(size = 14), 
-                                                            axis.text.x = element_text(size = 12), 
-                                                            axis.text.y = element_text(size = 12), 
-                                                            plot.title = element_text(size = 16)) +labs(x = NULL)
+    theme_bw()+ rotate_x_text(45) +
+    theme(panel.grid.major = element_line(colour = "gray97"), 
+          panel.grid.minor = element_line(colour = "gray97")) + 
+    theme(axis.title = element_text(face = "bold"), 
+          plot.title = element_text(size = 14, 
+                                    face = "bold"), legend.title = element_text(face = "bold"))
 ggsave(filename = "output/taxonmetadata/plot_taxonmetadata_FP.svg", device = "svg", width = 11, height=5)

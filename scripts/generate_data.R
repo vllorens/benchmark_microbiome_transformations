@@ -145,7 +145,7 @@ for(file in list.files("data/seq_matrices", full.names = T)){
 
 #### Generate metadata ####
 # First, define parameters for the metadata
-rho_meta_min <- 0.35       # minimum correlation for the metadata variables
+rho_meta_min <- 0.3       # minimum correlation for the metadata variables
 rho_meta_max <- 0.6        # max correlation for the metadata variables
 num_metadata_noC <- 35     # metadata numeric variables not correlating
 num_metadata_Ct <- 10      # metadata numeric variables correlating w one taxon

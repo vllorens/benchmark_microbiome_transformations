@@ -12,6 +12,13 @@ suppressPackageStartupMessages(library(ggpubr))
 suppressPackageStartupMessages(library(phyloseq))
 suppressPackageStartupMessages(library(ggsignif))
 suppressPackageStartupMessages(library(vegan))
+suppressPackageStartupMessages(library(CoDaSeq))
+suppressPackageStartupMessages(library(metagenomeSeq))
+suppressPackageStartupMessages(library(edgeR))
+suppressPackageStartupMessages(library(DESeq2))
+
+# load functions
+source("R/GMPR.R")
 
 # If it has not been run yet, it is necessary to run the script to generate the data (scripts/generate_data.R)
 # source("scripts/generate_data.R")
@@ -21,6 +28,8 @@ system("mkdir -p output/alpha_div")
 
 # clean these folders and remove all previous results (if any) 
 system("rm -r output/alpha_div/*")
+
+set.seed(777)
 
 #### Calculate alpha diversity ####
 richness_counts_all <- tibble()
@@ -67,6 +76,122 @@ for(file in list.files("data/tax_matrices", full.names = T)){
         mutate(scenario=scenario_name) %>% 
         mutate(method="Seq")
     richness_counts_all <- bind_rows(richness_counts_all, richness_counts_table)
+    # # CLR transformation (omitted as negative values don't make sense)
+    # tax_matrix <- t(zCompositions::cmultRepl(X = t(seq_matrix), output="counts")) # estimates zeros
+    # tax_matrix <- t(codaSeq.clr(tax_matrix, samples.by.row=F)) %>% round()
+    # abundances <- otu_table(tax_matrix, taxa_are_rows = T)
+    # richness_counts_table <- estimate_richness(abundances, measures=c("Observed", "Chao1")) %>% 
+    #     as_tibble() %>% 
+    #     mutate(samples=colnames(abundances)) %>% 
+    #     mutate(counts=original_counts) %>% 
+    #     gather(key = "Diversity_index", value = "Value", -samples, -counts) %>% 
+    #     mutate(matrix=matrix_name) %>% 
+    #     mutate(spread=spread_name) %>% 
+    #     mutate(scenario=scenario_name) %>% 
+    #     mutate(method="CLR")
+    # richness_counts_all <- bind_rows(richness_counts_all, richness_counts_table)
+    # GMPR transformation
+    gmpr.size.factor <- GMPR(comm=seq_matrix)
+    tax_matrix <- sweep(seq_matrix, MARGIN = 2, gmpr.size.factor, '/')
+    abundances <- otu_table(tax_matrix, taxa_are_rows = T) %>% round()
+    richness_counts_table <- estimate_richness(abundances, measures=c("Observed", "Chao1", "Simpson", "Shannon")) %>% 
+        as_tibble() %>% 
+        mutate(samples=colnames(abundances)) %>% 
+        mutate(counts=original_counts) %>% 
+        gather(key = "Diversity_index", value = "Value", -samples, -counts) %>% 
+        mutate(matrix=matrix_name) %>% 
+        mutate(spread=spread_name) %>% 
+        mutate(scenario=scenario_name) %>% 
+        mutate(method="GMPR")
+    richness_counts_all <- bind_rows(richness_counts_all, richness_counts_table)
+    # CSS - metagenomeSeq transformation
+    tax_matrix <- newMRexperiment(seq_matrix)
+    p <- cumNormStatFast(tax_matrix)
+    tax_matrix <- cumNorm(tax_matrix, p = p)
+    tax_matrix <- MRcounts(tax_matrix, norm=T)
+    abundances <- otu_table(tax_matrix, taxa_are_rows = T) %>% round()
+    richness_counts_table <- estimate_richness(abundances, measures=c("Observed", "Chao1", "Simpson", "Shannon")) %>% 
+        as_tibble() %>% 
+        mutate(samples=colnames(abundances)) %>% 
+        mutate(counts=original_counts) %>% 
+        gather(key = "Diversity_index", value = "Value", -samples, -counts) %>% 
+        mutate(matrix=matrix_name) %>% 
+        mutate(spread=spread_name) %>% 
+        mutate(scenario=scenario_name) %>% 
+        mutate(method="CSS")
+    richness_counts_all <- bind_rows(richness_counts_all, richness_counts_table)
+    # TMM - edgeR transformation
+    tax_matrix <- DGEList(counts=seq_matrix)
+    tax_matrix <- calcNormFactors(tax_matrix, method = "TMM")
+    tax_matrix <- cpm(tax_matrix)
+    abundances <- otu_table(tax_matrix, taxa_are_rows = T) %>% round()
+    richness_counts_table <- estimate_richness(abundances, measures=c("Observed", "Chao1", "Simpson", "Shannon")) %>% 
+        as_tibble() %>% 
+        mutate(samples=colnames(abundances)) %>% 
+        mutate(counts=original_counts) %>% 
+        gather(key = "Diversity_index", value = "Value", -samples, -counts) %>% 
+        mutate(matrix=matrix_name) %>% 
+        mutate(spread=spread_name) %>% 
+        mutate(scenario=scenario_name) %>% 
+        mutate(method="TMM")
+    richness_counts_all <- bind_rows(richness_counts_all, richness_counts_table)
+    # UQ - edgeR transformation
+    tax_matrix <- DGEList(counts=seq_matrix)
+    tax_matrix <- calcNormFactors(tax_matrix, method = "upperquartile")
+    tax_matrix <- cpm(tax_matrix)
+    abundances <- otu_table(tax_matrix, taxa_are_rows = T) %>% round()
+    richness_counts_table <- estimate_richness(abundances, measures=c("Observed", "Chao1", "Simpson", "Shannon")) %>% 
+        as_tibble() %>% 
+        mutate(samples=colnames(abundances)) %>% 
+        mutate(counts=original_counts) %>% 
+        gather(key = "Diversity_index", value = "Value", -samples, -counts) %>% 
+        mutate(matrix=matrix_name) %>% 
+        mutate(spread=spread_name) %>% 
+        mutate(scenario=scenario_name) %>% 
+        mutate(method="UQ")
+    richness_counts_all <- bind_rows(richness_counts_all, richness_counts_table)
+    # RLE - edgeR transformation
+    tax_matrix <- DGEList(counts=seq_matrix)
+    tax_matrix <- calcNormFactors(tax_matrix, method = "RLE")
+    tax_matrix <- cpm(tax_matrix)
+    abundances <- otu_table(tax_matrix, taxa_are_rows = T) %>% round()
+    richness_counts_table <- estimate_richness(abundances, measures=c("Observed", "Chao1", "Simpson", "Shannon")) %>% 
+        as_tibble() %>% 
+        mutate(samples=colnames(abundances)) %>% 
+        mutate(counts=original_counts) %>% 
+        gather(key = "Diversity_index", value = "Value", -samples, -counts) %>% 
+        mutate(matrix=matrix_name) %>% 
+        mutate(spread=spread_name) %>% 
+        mutate(scenario=scenario_name) %>% 
+        mutate(method="RLE")
+    richness_counts_all <- bind_rows(richness_counts_all, richness_counts_table)
+    # # AST transformation (omitted as only values between 0 and 1 returned)
+    # tax_matrix = apply(seq_matrix, 2, function(x){x/sum(x)}) # TSS
+    # tax_matrix <- asin(sqrt(tax_matrix)) # AST
+    # abundances <- otu_table(tax_matrix, taxa_are_rows = T) %>% round()
+    # richness_counts_table <- estimate_richness(abundances, measures=c("Observed", "Chao1", "Simpson", "Shannon")) %>% 
+    #     as_tibble() %>% 
+    #     mutate(samples=colnames(abundances)) %>% 
+    #     mutate(counts=original_counts) %>% 
+    #     gather(key = "Diversity_index", value = "Value", -samples, -counts) %>% 
+    #     mutate(matrix=matrix_name) %>% 
+    #     mutate(spread=spread_name) %>% 
+    #     mutate(scenario=scenario_name) %>% 
+    #     mutate(method="AST")
+    # richness_counts_all <- bind_rows(richness_counts_all, richness_counts_table)
+    # # VST - DESeq2 (omitted as negative values don't make sense)
+    # tax_matrix <- varianceStabilizingTransformation(seq_matrix)
+    # abundances <- otu_table(tax_matrix, taxa_are_rows = T) %>% round()
+    # richness_counts_table <- estimate_richness(abundances, measures=c("Observed", "Chao1")) %>% 
+    #     as_tibble() %>% 
+    #     mutate(samples=colnames(abundances)) %>% 
+    #     mutate(counts=original_counts) %>% 
+    #     gather(key = "Diversity_index", value = "Value", -samples, -counts) %>% 
+    #     mutate(matrix=matrix_name) %>% 
+    #     mutate(spread=spread_name) %>% 
+    #     mutate(scenario=scenario_name) %>% 
+    #     mutate(method="VST")
+    # richness_counts_all <- bind_rows(richness_counts_all, richness_counts_table)
     # read RMP file
     rmp_matrix <- read.table(paste0("data/rmp_matrices/RMP_", filename), 
                              header=T, stringsAsFactors=F, sep="\t") %>% 
@@ -116,6 +241,83 @@ for(file in list.files("data/tax_matrices", full.names = T)){
 
 
 #### Assemble results and plot (Figure 1b) ####
+# first separate the "real" alpha diversity to use as reference
+richness_counts_all_2 <- spread(richness_counts_all, key="method", value="Value") %>% 
+    dplyr::filter(Diversity_index!="se.chao1")
+richness_counts_all_2 <- gather(richness_counts_all_2, key="method", value="Value", 
+                              -c("samples", "counts", "Diversity_index", "matrix",
+                                 "spread", "scenario", "Real"))
+richness_counts_all_2 <- richness_counts_all_2 %>% drop_na()
+
+# fit to the real data
+fit_summary <- tibble()
+for(mat in unique(richness_counts_all_2$matrix)){
+    temp_matrix <- richness_counts_all_2 %>% 
+        dplyr::filter(matrix==mat)
+    for(met in unique(temp_matrix$method)){
+        temp_matrix2 <- temp_matrix %>% 
+            dplyr::filter(method==met)
+        for(div in unique(temp_matrix2$Diversity_index)){
+            temp_matrix3 <- temp_matrix2 %>% 
+                dplyr::filter(Diversity_index==div)
+            tib_temp <- tibble(Diversity_index=div, matrix=mat, method=met,
+                               scenario=unique(temp_matrix3$scenario),
+                               fit=coef(lm(Real ~ Value, data=temp_matrix3))[2],
+                               rho=cor(temp_matrix3$Real, temp_matrix3$Value, method="spearman"))
+            fit_summary <- bind_rows(fit_summary,tib_temp)
+        }
+    }
+}
+
+method_type <- tibble(method=c("Seq", "RMP", "CSS", "GMPR",
+                               "UQ", "RLE", "TMM","QMP", "QMP-NR"),
+                      method_type=c("Sequencing", "Traditional transformations", 
+                                    rep("Compositional transformations", times=5),
+                                    rep("Quantitative transformations", times=2)))
+fit_summary <- fit_summary %>% 
+    left_join(method_type, by="method")
+
+fit_summary$method <- factor(fit_summary$method, 
+                                     levels=c("Seq", "RMP", "CSS", "GMPR",
+                                              "UQ", "RLE", "TMM", "QMP", "QMP-NR"))
+fit_summary$method_type <- factor(fit_summary$method_type, 
+                             levels=c("Sequencing", "Traditional transformations", 
+                                      "Compositional transformations",
+                                      "Quantitative transformations"))
+fit_summary$scenario <- factor(fit_summary$scenario,
+                                       levels=c("Healthy", "Blooming", "Dysbiosis"))
+fit_summary$Diversity_index <- factor(fit_summary$Diversity_index, 
+                                              levels=c("Observed", "Chao1", "Simpson", "Shannon"))
+
+
+fig1b <- ggerrorplot(fit_summary, x="method", y="rho", color="method_type", 
+          facet.by = c("Diversity_index", "scenario"), desc_stat="mean_ci", size=0.3,
+          fill="method_type", 
+          error.plot = "pointrange", palette="Spectral", legend.title="Method type",
+          title="Correlation of alpha diversity metrics with the real values") + 
+    theme_bw() + 
+    geom_hline(yintercept = 1) + rotate_x_text(45) +
+    theme(panel.grid.major = element_line(colour = "gray97"), 
+    panel.grid.minor = element_line(colour = "gray97")) + 
+    theme(axis.title = element_text(face = "bold"), 
+    plot.title = element_text(size = 14, 
+        face = "bold"), legend.title = element_text(face = "bold")) +
+    labs(x = "Method")
+
+fig1b
+ggsave(fig1b, "output/alpha_div/correlation_alpha_div_real.pdf", device="pdf", height=8, width=8)
+
+
+
+# For supplementary
+method_type <- tibble(method=c("Real", "Seq", "RMP", "CSS", "GMPR",
+                               "UQ", "RLE", "TMM","QMP", "QMP-NR"),
+                      method_type=c("No transformation", "Sequencing", 
+                                    "Traditional transformations", 
+                                    rep("Compositional transformations", times=5),
+                                    rep("Quantitative transformations", times=2)))
+richness_counts_all <- richness_counts_all %>% 
+    left_join(method_type, by="method")
 richness_counts_all$spread <- factor(richness_counts_all$spread, 
                                      levels=c("low", "high"))
 richness_counts_all$Diversity_index <- factor(richness_counts_all$Diversity_index, 
@@ -123,7 +325,8 @@ richness_counts_all$Diversity_index <- factor(richness_counts_all$Diversity_inde
 richness_counts_all$scenario <- factor(richness_counts_all$scenario,
                                        levels=c("Healthy", "Blooming", "Dysbiosis"))
 richness_counts_all$method <- factor(richness_counts_all$method, 
-                                     levels=c("Real", "Seq", "RMP", "QMP", "QMP-NR"))
+                                     levels=c("Real", "Seq", "RMP", "CSS", "GMPR",
+                                              "UQ", "RLE", "TMM", "QMP", "QMP-NR"))
 richness_counts_all$matrix <- factor(richness_counts_all$matrix, 
                                      levels=c("S1", "S2", "S3", "S4", "S5", "S6",
                                               "S7", "S8", "S9", "S10",
@@ -167,21 +370,4 @@ print(ggscatter(richness_counts_all %>% dplyr::filter(Diversity_index=="Shannon"
                 add = "reg", add.params = list(color = "method")) + 
           xscale("log10") + 
           theme_bw())
-ggsave("output/alpha_div/alphadiv_Shannon.pdf", device = "pdf")
-
-# example for the figure
-richness_ex <- richness_counts_all %>% dplyr::filter(matrix %in% c("S1", "D4", "B1")) %>% 
-    dplyr::filter(Diversity_index %in% c("Observed", "Chao1", "Simpson", "Shannon"))
-richness_ex$method <- gsub(richness_ex$method, pattern="Seq", replacement="Sequencing")
-richness_ex$method <- factor(richness_ex$method, 
-                             levels=c("Real", "Sequencing", "RMP", "QMP", "QMP-NR"))
-print(ggscatter(richness_ex,
-                x="counts", y="Value", group="matrix", ylab="Alpha diversity index value",
-                fill="method", alpha=0.9, shape=21, color="black",
-                scales="free", palette="Spectral", xlab="Absolute cell counts",
-                add = "reg", add.params = list(color = "method"),
-                facet.by=c("Diversity_index", "scenario"), 
-                title="Alpha diversity indices in simulated scenarios") + 
-          xscale("log10") + 
-          theme_bw() + theme(plot.title = element_text(face = "bold")))
-ggsave("output/alpha_div/alphadiv_examples_fig1b.pdf",device = "pdf" , width=7, height=7)
+ggsave("output/alpha_div/alphadiv_Shannon.pdf", device = "pdf", width=11, height=4)
