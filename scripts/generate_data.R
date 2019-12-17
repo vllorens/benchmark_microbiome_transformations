@@ -18,6 +18,7 @@ suppressPackageStartupMessages(library(gdata))
 # load required functions
 source("R/metadata.R")
 source("R/rarefy_even_sampling_depth.R")
+source("R/counts_taxa_correlation.R")
 
 set.seed(14102019)
 
@@ -37,7 +38,7 @@ system("rm -r data/rmp_matrices/*")
 system("rm -r data/qmp_matrices/*")
 system("rm -r data/qmp2_matrices/*")
 system("rm -r data/metadata_matrices/*")
-system("rm -r output/rawdataplots")
+system("rm -r output/rawdataplots/*")
 
 # remove all objects in the environment
 rm(list = setdiff(ls(), lsf.str()))
@@ -169,60 +170,6 @@ for(file in list.files("data/tax_matrices", full.names = T)){
 }
 
 
-#### Plot original datasets (Figure 1a) ####
-# plot top 10 taxa per sample (relative + absolute)
-for(file in list.files("data/tax_matrices", full.names = T)){
-    # read file 
-    filename <- basename(file)
-    tax_matrix <- read.table(file, header=T, stringsAsFactors=F, sep="\t") %>% 
-        as.matrix()
-    matrix_name <- strsplit(filename, split="_")[[1]][2]
-    spread_name <- strsplit(filename, split="_")[[1]][3]
-    scenario_name <- strsplit(filename, split="_")[[1]][5] %>% gsub(., pattern="\\.tsv", replacement="")
-    
-    tax_tibble <- as_tibble(tax_matrix) %>% 
-        mutate(taxa=rownames(tax_matrix))
-    
-    ## choose top 10 and discard the rest
-    tax_long <- tax_tibble %>% 
-        gather(key = "sample", value = "counts", -taxa)
-    top10 <- tax_long %>%
-        group_by(taxa) %>%
-        summarize(counts = sum(counts, na.rm=T)) %>%
-        arrange(desc(counts)) %>%
-        pull(taxa) %>%
-        head(.,10)
-    
-    simplifiedData <- tax_long
-    simplifiedData[!simplifiedData$taxa %in% top10,"taxa"] <- NA
-    
-    simplifiedData <- simplifiedData %>%
-        group_by(taxa, sample) %>%
-        summarize_all(sum)
-    
-    simplifiedData$taxa <- as.factor(simplifiedData$taxa)
-    simplifiedData$sample <- as.factor(simplifiedData$sample)
-    
-    simplifiedData$sample <- reorder(simplifiedData$sample, simplifiedData$counts)
-    
-    p1 <- ggbarplot(simplifiedData, x = "sample", y="counts", color="taxa", fill="taxa",
-                    legend="right",font.legend = c(8, "plain", "black"),
-                    legend.title="Top 10 taxa", main=paste0("Absolute counts - simulation - Matrix: ", matrix_name, " - Spread: ", spread_name),
-                    font.main = c(14,"bold", "black"), font.x = c(12, "bold"), 
-                    font.y=c(12,"bold"), xlab="Sample", ylab="Absolute cell counts") + 
-        scale_colour_brewer(palette="Spectral", na.value="grey") +
-        scale_fill_brewer(palette="Spectral", na.value="grey") +
-        theme_bw() + 
-        theme(axis.text.x=element_blank(),
-              axis.ticks.x = element_blank()) + 
-        theme(plot.title = element_text(face = "bold"))
-    
-    ggsave(plot = p1, paste0("output/rawdataplots/toptaxa_", matrix_name, 
-                             "_", spread_name, "_spread_",  scenario_name, ".pdf"), 
-           device = "pdf", width = 7, height = 7)
-}
-
-
 #### Calculate matrix basic stats ####
 
 # Matrix stats
@@ -285,4 +232,123 @@ for(file in list.files("data/tax_matrices", full.names = T)){
 }
 
 write_tsv(matrix_stats, "data/raw/matrix_stats_3scenarios.tsv", col_names = T)
+
+
+
+#### Plot original datasets (Figure 1a) ####
+# plot top 10 taxa per sample (relative + absolute) AND special taxon
+for(file in list.files("data/tax_matrices", full.names = T)){
+    # read file 
+    filename <- basename(file)
+    tax_matrix <- read.table(file, header=T, stringsAsFactors=F, sep="\t") %>% 
+        as.matrix()
+    matrix_name <- strsplit(filename, split="_")[[1]][2]
+    spread_name <- strsplit(filename, split="_")[[1]][3]
+    scenario_name <- strsplit(filename, split="_")[[1]][5] %>% gsub(., pattern="\\.tsv", replacement="")
+    
+    tax_tibble <- as_tibble(tax_matrix) %>% 
+        mutate(taxa=rownames(tax_matrix))
+    
+    ## choose top 10 and discard the rest
+    tax_long <- tax_tibble %>% 
+        gather(key = "sample", value = "counts", -taxa)
+    top10 <- tax_long %>%
+        group_by(taxa) %>%
+        summarize(counts = sum(counts, na.rm=T)) %>%
+        arrange(desc(counts)) %>%
+        pull(taxa) %>%
+        head(.,10)
+    
+    ## add special taxa in dysbiosis and in blooming
+    if(scenario_name=="Dysbiosis"){
+        opportunist <- c()
+        opportunist <- matrix_stats %>% 
+            filter(matrix==matrix_name) %>% 
+            pull(special_taxon)
+        irresponsive <- c()
+        irresponsive <- matrix_stats %>% 
+            filter(matrix==matrix_name) %>% 
+            pull(flat_taxon_dysbiosis)
+        top10sp <- unique(c(top10, opportunist, irresponsive))
+        if(top10sp!=10){ # keep the taxa plotted to 10 max
+            top10sp <- unique(c(top10[1:(10-(length(top10sp)-length(top10)))], 
+                                opportunist, irresponsive))
+        }
+    }
+    if(scenario_name=="Blooming"){
+        bloomer <- c()
+        bloomer <- matrix_stats %>% 
+            filter(matrix==matrix_name) %>% 
+            pull(special_taxon)
+        top10sp <- unique(c(top10, bloomer))
+        if(top10sp!=10){ # keep the taxa plotted to 10 max
+            top10sp <- unique(c(top10[1:(10-(length(top10sp)-length(top10)))], 
+                                bloomer))
+        }
+    }
+    if(scenario_name=="Healthy"){ # No special taxa
+        top10sp <- top10
+    }
+    
+    ## regroup and plot
+    simplifiedData <- tax_long
+    simplifiedData[!simplifiedData$taxa %in% top10sp,"taxa"] <- NA
+    
+    simplifiedData <- simplifiedData %>%
+        group_by(taxa, sample) %>%
+        summarize_all(sum)
+    
+    simplifiedData$taxa <- as.factor(simplifiedData$taxa)
+    simplifiedData$sample <- as.factor(simplifiedData$sample)
+    
+    simplifiedData$sample <- reorder(simplifiedData$sample, simplifiedData$counts)
+    
+    if(scenario_name=="Blooming"){
+        simplifiedData$taxa <- gsub(simplifiedData$taxa, pattern=bloomer, 
+                                    replacement=paste0(bloomer, "_Bloomer"))
+        top10sp <- gsub(top10sp, pattern=bloomer, 
+                                    replacement=paste0(bloomer, "_Bloomer"))
+        top10sp <- sort(top10sp)
+        legendtitle <- "Top 10 and special taxa"
+    }
+    if(scenario_name=="Dysbiosis"){
+        simplifiedData$taxa <- gsub(simplifiedData$taxa, pattern=opportunist, 
+                                    replacement=paste0(opportunist, "_Opportunist"))
+        top10sp <- gsub(top10sp, pattern=opportunist, 
+                      replacement=paste0(opportunist, "_Opportunist"))
+        simplifiedData$taxa <- gsub(simplifiedData$taxa, pattern=irresponsive, 
+                                    replacement=paste0(irresponsive, "_Unresponsive"))
+        top10sp <- gsub(top10sp, pattern=irresponsive, 
+                      replacement=paste0(irresponsive, "_Unresponsive"))
+        top10sp <- sort(top10sp)
+        legendtitle <- "Top 10 and special taxa"
+    }
+    if(scenario_name=="Healthy"){ # No special taxa
+        top10sp <- sort(top10sp)
+        legendtitle <- "Top 10 taxa"
+    }
+    
+    
+    p1 <- ggbarplot(simplifiedData, x = "sample", y="counts", color="taxa", fill="taxa",
+                    legend="right",font.legend = c(8, "plain", "black"),
+                    legend.title=legendtitle, main=paste0("Absolute counts - simulation - Matrix: ", matrix_name, " - Spread: ", spread_name),
+                    font.main = c(14,"bold", "black"), font.x = c(12, "bold"), 
+                    font.y=c(12,"bold"), xlab="Sample", ylab="Absolute cell counts") + 
+        scale_colour_brewer(palette="Spectral", na.value="grey", labels = c(top10sp, "Other")) +
+        scale_fill_brewer(palette="Spectral",  na.value="grey", labels = c(top10sp, "Other")) +
+        theme_bw() + 
+        theme(axis.text.x=element_blank(),
+              axis.ticks.x = element_blank()) + 
+        theme(panel.grid.major = element_line(colour = "gray97"), 
+              panel.grid.minor = element_line(colour = "gray97")) + 
+        theme(axis.title = element_text(face = "bold"), 
+              plot.title = element_text(size = 14, 
+                                        face = "bold"), 
+              legend.title = element_text(face = "bold"))    
+
+
+    ggsave(plot = p1, filename=paste0("output/rawdataplots/toptaxa_", matrix_name, 
+                             "_", spread_name, "_spread_",  scenario_name, ".pdf"), 
+           device = "pdf", width = 7, height = 7)
+}
 

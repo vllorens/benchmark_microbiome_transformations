@@ -293,7 +293,7 @@ fit_summary$Diversity_index <- factor(fit_summary$Diversity_index,
 fig1b <- ggerrorplot(fit_summary, x="method", y="rho", color="method_type", 
           facet.by = c("Diversity_index", "scenario"), desc_stat="mean_ci", size=0.3,
           fill="method_type", 
-          error.plot = "pointrange", palette="Spectral", legend.title="Method type",
+          error.plot = "pointrange", palette=get_palette("Spectral",11)[c(2,5,8,10)], legend.title="Method type",
           title="Correlation of alpha diversity metrics with the real values") + 
     theme_bw() + 
     geom_hline(yintercept = 1) + rotate_x_text(45) +
@@ -305,7 +305,7 @@ fig1b <- ggerrorplot(fit_summary, x="method", y="rho", color="method_type",
     labs(x = "Method")
 
 fig1b
-ggsave(fig1b, "output/alpha_div/correlation_alpha_div_real.pdf", device="pdf", height=8, width=8)
+ggsave(fig1b, filename = "output/alpha_div/correlation_alpha_div_real.ps", device="ps", height=8, width=8)
 
 
 
@@ -339,35 +339,59 @@ print(ggscatter(richness_counts_all %>% dplyr::filter(Diversity_index=="Observed
                 x="counts", y="Value", group="matrix", facet.by=c("matrix"), nrow=3,
                 fill="method", alpha=0.5, shape=21, color="black",
                 title="Observed richness vs counts", palette="Spectral",
-                ylab="Observed richness", xlab="Actual cell counts",
+                ylab="Observed richness", xlab="Microbial load",
                 add = "reg", add.params = list(color = "method")) + 
           xscale("log10") + 
-          theme_bw())
-ggsave("output/alpha_div/alphadiv_observed.pdf", device = "pdf")
+          theme_bw())+ rotate_x_text(45) +
+    theme(panel.grid.major = element_line(colour = "gray97"), 
+          panel.grid.minor = element_line(colour = "gray97")) + 
+    theme(axis.title = element_text(face = "bold"), 
+          plot.title = element_text(size = 14, 
+                                    face = "bold"), 
+          legend.title = element_text(face = "bold"))
+ggsave("output/alpha_div/alphadiv_observed.ps", device = "ps", width=11, height=5)
 print(ggscatter(richness_counts_all %>% dplyr::filter(Diversity_index=="Chao1"), 
                 x="counts", y="Value", group="matrix", facet.by=c("matrix"), nrow=3,
                 fill="method", alpha=0.5, shape=21, color="black",
                 title="Chao1 diversity vs counts", palette="Spectral",
-                ylab="Chao1 diversity", xlab="Actual cell counts",
+                ylab="Chao1 diversity", xlab="Microbial load",
                 add = "reg", add.params = list(color = "method")) + 
           xscale("log10") + 
-          theme_bw())
-ggsave("output/alpha_div/alphadiv_chao1.pdf", device = "pdf")
+          theme_bw())+ rotate_x_text(45) +
+    theme(panel.grid.major = element_line(colour = "gray97"), 
+          panel.grid.minor = element_line(colour = "gray97")) + 
+    theme(axis.title = element_text(face = "bold"), 
+          plot.title = element_text(size = 14, 
+                                    face = "bold"), 
+          legend.title = element_text(face = "bold"))
+ggsave("output/alpha_div/alphadiv_chao1.ps", device = "ps", width=11, height=5)
 print(ggscatter(richness_counts_all %>% dplyr::filter(Diversity_index=="Simpson"), 
                 x="counts", y="Value", group="matrix", facet.by=c("matrix"), nrow=3,
                 fill="method", alpha=0.5, shape=21, color="black",
                 title="Simpson diversity vs counts", palette="Spectral",
-                ylab="Simpson's diversity", xlab="Actual cell counts",
+                ylab="Simpson's diversity", xlab="Microbial load",
                 add = "reg", add.params = list(color = "method")) + 
           xscale("log10") + 
-          theme_bw())
-ggsave("output/alpha_div/alphadiv_Simpson.pdf", device = "pdf")
+          theme_bw())+ rotate_x_text(45) +
+    theme(panel.grid.major = element_line(colour = "gray97"), 
+          panel.grid.minor = element_line(colour = "gray97")) + 
+    theme(axis.title = element_text(face = "bold"), 
+          plot.title = element_text(size = 14, 
+                                    face = "bold"), 
+          legend.title = element_text(face = "bold"))
+ggsave("output/alpha_div/alphadiv_Simpson.ps", device = "ps", width=11, height=5)
 print(ggscatter(richness_counts_all %>% dplyr::filter(Diversity_index=="Shannon"), 
                 x="counts", y="Value", group="matrix", facet.by=c("matrix"), nrow=3,
                 fill="method", alpha=0.5, shape=21, color="black",
                 title="Shannon diversity vs counts", palette="Spectral",
-                ylab="Shannon's diversity", xlab="Actual cell counts",
+                ylab="Shannon's diversity",xlab="Microbial load",
                 add = "reg", add.params = list(color = "method")) + 
           xscale("log10") + 
-          theme_bw())
-ggsave("output/alpha_div/alphadiv_Shannon.pdf", device = "pdf", width=11, height=4)
+          theme_bw())+ rotate_x_text(45) +
+    theme(panel.grid.major = element_line(colour = "gray97"), 
+          panel.grid.minor = element_line(colour = "gray97")) + 
+    theme(axis.title = element_text(face = "bold"), 
+          plot.title = element_text(size = 14, 
+                                    face = "bold"), 
+          legend.title = element_text(face = "bold"))
+ggsave("output/alpha_div/alphadiv_Shannon.ps", device = "ps", width=11, height=5)

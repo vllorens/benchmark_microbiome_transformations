@@ -691,7 +691,7 @@ ggboxplot(results_all, x="method", y="Precision", fill="method_type", alpha=0.5,
     theme(axis.title = element_text(face = "bold"), 
           plot.title = element_text(size = 14, 
                                     face = "bold"), legend.title = element_text(face = "bold"))
-ggsave(filename = "output/taxontaxon/plot_taxontaxon_precision.pdf", device = "pdf", width = 11, height=5)
+ggsave(filename = "output/taxontaxon/plot_taxontaxon_precision.ps", device = "ps", width = 11, height=5)
 ggboxplot(results_all, x="method", y="Recall", alpha=0.5,
           fill="method_type", facet.by = c("scen"), 
           ylab="Recall [TP/TP+FN]",
@@ -706,7 +706,7 @@ ggboxplot(results_all, x="method", y="Recall", alpha=0.5,
     theme(axis.title = element_text(face = "bold"), 
           plot.title = element_text(size = 14, 
                                     face = "bold"), legend.title = element_text(face = "bold"))
-ggsave(filename = "output/taxontaxon/plot_taxontaxon_recall.pdf", device = "pdf", width = 11, height=5)
+ggsave(filename = "output/taxontaxon/plot_taxontaxon_recall.ps", device = "ps", width = 11, height=5)
 ggboxplot(results_all, x="method", y="false_positive_percent", alpha=0.5,
           fill="method_type", facet.by = c( "scen"), 
           ylab="% False positives",
@@ -721,7 +721,7 @@ ggboxplot(results_all, x="method", y="false_positive_percent", alpha=0.5,
     theme(axis.title = element_text(face = "bold"), 
           plot.title = element_text(size = 14, 
                                     face = "bold"), legend.title = element_text(face = "bold"))
-ggsave(filename = "output/taxontaxon/plot_taxontaxon_FP.pdf", device = "pdf", width = 11, height=5)
+ggsave(filename = "output/taxontaxon/plot_taxontaxon_FP.ps", device = "ps", width = 11, height=5)
 
 
 
@@ -837,7 +837,7 @@ ggboxplot(results_all, x="method", y="Precision", alpha=0.5,
     theme(axis.title = element_text(face = "bold"), 
           plot.title = element_text(size = 14, 
                                     face = "bold"), legend.title = element_text(face = "bold"))
-ggsave(filename = "output/taxonmetadata/plot_taxonmetadata_precision.svg", device = "svg", width = 11, height=5)
+ggsave(filename = "output/taxonmetadata/plot_taxonmetadata_precision.ps", device = "ps", width = 11, height=5)
 ggboxplot(results_all, x="method", y="Recall", alpha=0.5,
           fill="method_type", facet.by = c("scen"), 
           ylab="Recall [TP/TP+FN]",
@@ -852,7 +852,7 @@ ggboxplot(results_all, x="method", y="Recall", alpha=0.5,
     theme(axis.title = element_text(face = "bold"), 
           plot.title = element_text(size = 14, 
                                     face = "bold"), legend.title = element_text(face = "bold"))
-ggsave(filename = "output/taxonmetadata/plot_taxonmetadata_recall.svg", device = "svg", width = 11, height=5)
+ggsave(filename = "output/taxonmetadata/plot_taxonmetadata_recall.ps", device = "ps", width = 11, height=5)
 ggboxplot(results_all, x="method", y="false_positive_percent", alpha=0.5,
           fill="method_type", facet.by = c( "scen"), 
           ylab="% False positives",
@@ -867,4 +867,4 @@ ggboxplot(results_all, x="method", y="false_positive_percent", alpha=0.5,
     theme(axis.title = element_text(face = "bold"), 
           plot.title = element_text(size = 14, 
                                     face = "bold"), legend.title = element_text(face = "bold"))
-ggsave(filename = "output/taxonmetadata/plot_taxonmetadata_FP.svg", device = "svg", width = 11, height=5)
+ggsave(filename = "output/taxonmetadata/plot_taxonmetadata_FP.ps", device = "ps", width = 11, height=5)
