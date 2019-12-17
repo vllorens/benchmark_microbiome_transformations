@@ -68,9 +68,11 @@ for(tab in ls(pattern = "Mp")){
     print(spread)
     print((apply(ind_matrix,2,sum) %>% max))
     print((apply(ind_matrix,2,sum) %>% min))
-    if(spread<10){
+    if(spread<20){
         spread_cat <- "low"
-    } else{
+    } else if(spread >= 20 & spread < 40){
+        spread_cat <- "medium"
+    }else{
         spread_cat <- "high"
     }
     write.table(ind_matrix, paste0("data/tax_matrices/taxonomy_", mt, "_", spread_cat, "_spread_", scenario, ".tsv"), 

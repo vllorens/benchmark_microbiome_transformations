@@ -30,7 +30,7 @@ system("mkdir -p output/qmp_qmpnr")
 # clean these folders and remove all previous results (if any) 
 system("rm -r output/qmp_qmpnr/*")
 
-
+set.seed(777)
 #### Compare QMP and QMP-NR at different sequencing depths ####
 
 sequencing_avg_depths <- seq(0.000001, 0.00005, by=0.000002)
@@ -87,32 +87,41 @@ for(file in list.files("data/tax_matrices", full.names = T)){
         
         if(length(not_cor)>0){    
             #correlations on real data
-            file_real <- taxon_metadata_correlation(taxon_matrix = as.matrix(tax_matrix)[not_cor,,drop=F], metadata_matrix = metadatafile[,c(46:50,96:100)])[[2]]
+            file_real <- taxon_metadata_correlation(taxon_matrix = as.matrix(tax_matrix)[not_cor,,drop=F], metadata_matrix = metadatafile[,c(46:50,96:100)])
             #correlations on qmp/qmp-nr data
-            file_qmp <- taxon_metadata_correlation(taxon_matrix = as.matrix(qmp)[not_cor,,drop=F], metadata_matrix = metadatafile[,c(46:50,96:100)])[[2]]
-            file_qmpnr <- taxon_metadata_correlation(taxon_matrix = as.matrix(qmpnr)[not_cor,,drop=F], metadata_matrix = metadatafile[,c(46:50,96:100)])[[2]]
+            file_qmp <- taxon_metadata_correlation(taxon_matrix = as.matrix(qmp)[not_cor,,drop=F], metadata_matrix = metadatafile[,c(46:50,96:100)])
+            file_qmpnr <- taxon_metadata_correlation(taxon_matrix = as.matrix(qmpnr)[not_cor,,drop=F], metadata_matrix = metadatafile[,c(46:50,96:100)])
             
             # assess performance
-            file_real_sig <- which(file_real<0.05)
-            file_qmp_sig <- which(file_qmp<0.05)
-            file_qmpnr_sig <- which(file_qmpnr<0.05)
+            test_significant_qmp <- c(unlist(file_qmp[[2]] < 0.05))
+            test_significant_qmpnr <- c(unlist(file_qmpnr[[2]] < 0.05))
+            reference_significant <- c(unlist(file_real[[2]] < 0.05))
+            test_sign_qmp <- sign(c(unlist(file_qmp[[1]])))
+            test_sign_qmpnr <- sign(c(unlist(file_qmpnr[[1]])))
+            reference_sign <- sign(c(unlist(file_real[[1]])))
+            test_sign_qmp[is.na(test_sign_qmp)] <- 1
+            test_sign_qmpnr[is.na(test_sign_qmpnr)] <- 1
+            reference_sign[is.na(reference_sign)] <- 1
             
-            fpqmp <- setdiff(file_qmp_sig, file_real_sig)
-            fpqmpnr <- setdiff(file_qmpnr_sig, file_real_sig)
+            tpqmp <- length(which(test_significant_qmp & reference_significant & test_sign_qmp==reference_sign))
+            tpqmpnr <- length(which(test_significant_qmpnr & reference_significant & test_sign_qmpnr==reference_sign))
             
-            tpqmp <- intersect(file_qmp_sig, file_real_sig)
-            tpqmpnr <- intersect(file_qmpnr_sig, file_real_sig)
+            fpqmp <- length(which(test_significant_qmp & !reference_significant))+length(which(test_significant_qmp & reference_significant & test_sign_qmp!=reference_sign))
+            fpqmpnr <- length(which(test_significant_qmpnr & !reference_significant))+length(which(test_significant_qmpnr & reference_significant & test_sign_qmpnr!=reference_sign))
+
+            tnqmp <- length(which(!test_significant_qmp & !reference_significant))
+            tnqmpnr <- length(which(!test_significant_qmpnr & !reference_significant))
             
-            fnqmp <- setdiff(file_real_sig, file_qmp_sig)
-            fnqmpnr <- setdiff(file_real_sig, file_qmpnr_sig)
+            fnqmp <- length(which(!test_significant_qmp & reference_significant))
+            fnqmpnr <- length(which(!test_significant_qmpnr & reference_significant))
             
             
-            fdr_qmp <- c(fdr_qmp, 1-(length(tpqmp)/(length(tpqmp)+length(fpqmp))))
-            fdr_qmpnr <- c(fdr_qmpnr, 1-(length(tpqmpnr)/(length(tpqmpnr)+length(fpqmpnr))))
+            fdr_qmp <- c(fdr_qmp, fpqmp/(fpqmp+tpqmp))
+            fdr_qmpnr <- c(fdr_qmpnr, fpqmpnr/(fpqmpnr+tpqmpnr))
             spread_v <- c(spread_v, spread_name)
             scenario_v <- c(scenario_v, scenario_name)
-            fp_qmp <- c(fp_qmp, length(fpqmp))
-            fp_qmpnr <- c(fp_qmpnr, length(fpqmpnr))
+            fp_qmp <- c(fp_qmp, fpqmp/(fpqmp+tnqmp))
+            fp_qmpnr <- c(fp_qmpnr, fpqmpnr/(fpqmpnr+tnqmpnr))
             depths <- c(depths, numreads)
             matname <- c(matname, matrix_name)
         }
@@ -125,36 +134,42 @@ for(file in list.files("data/tax_matrices", full.names = T)){
 #### Assess performance of both QMP and QMP-NR ####
 
 result <- read_tsv("output/qmp_qmpnr/qmp_vs_qmpnr_taxonmetadata_depths.tsv", col_names=T)
-matnames <- list.files("data/tax_matrices/", full.names = F) %>% 
-    sapply(., function(X){strsplit(X, split="_")[[1]][2]}) %>% 
-    rep(., each=25)
-result <- bind_cols(result, matrix=matnames)
-
 resultlong <- result %>% 
     dplyr::select(-c(fdr_qmp, fdr_qmpnr)) %>% 
-    gather(., key = "method", value="FPR", -c(spread_v, scenario_v, depths, matrix))
+    gather(., key = "method", value="FPR", -c(spread_v, scenario_v, depths, matname))
 
-resultlong$method <- resultlong$method %>% gsub(., pattern="fp_qmp", replacement="QMP")
 resultlong$method <- resultlong$method %>% gsub(., pattern="fp_qmpnr", replacement="QMP-NR")
-
-ggline(resultlong, x="depths", y="FPR", color="method", facet.by="scenario_v",
-       numeric.x.axis = T, add = "mean_se", palette=get_palette("Spectral", k = 6)[c(1,6)], xlab="Sequencing reads", 
-       ylab="False Positive Rate", title = "Associations of invariant taxa with metadata",
+resultlong$method <- resultlong$method %>% gsub(., pattern="fp_qmp", replacement="QMP")
+resultlong$spread_v <- resultlong$spread_v %>% gsub(., pattern="low", replacement="Low")
+resultlong$spread_v <- resultlong$spread_v %>% gsub(., pattern="medium", replacement="Medium")
+resultlong$spread_v <- resultlong$spread_v %>% gsub(., pattern="high", replacement="High")
+resultlong$spread_v <- factor(resultlong$spread_v, levels=c("Low", "Medium", "High"))
+ggline(resultlong, x="depths", y="FPR", color="method", facet.by="spread_v",
+       numeric.x.axis = T, add = "mean_se", palette=get_palette("Spectral", k = 11)[c(2,10)], xlab="Sequencing reads", 
+       ylab="FPR [FP/FP+TN]", title = "Associations of invariant taxa with metadata",
        legend.title="Method") + 
     xscale("log10", .format = TRUE) + 
-    theme_bw() + theme(plot.title = element_text(face = "bold"))
+    theme(panel.grid.major = element_line(colour = "gray97"), 
+          panel.grid.minor = element_line(colour = "gray97")) + 
+    theme(axis.title = element_text(face = "bold"), 
+          plot.title = element_text(size = 14, 
+                                    face = "bold"), legend.title = element_text(face = "bold"))
 ggsave("output/qmp_qmpnr/qmp_vs_qmpNR_invarianttaxa_metadata.pdf", device="pdf", 
-       width=11, height=5)
+       width=11, height=3.5)
 
 resultlong <- resultlong %>% 
     dplyr::filter(scenario_v!="Dysbiosis")
-ggline(resultlong, x="depths", y="FPR", color="method", facet.by="scenario_v",
-       numeric.x.axis = T, add = "mean_se", palette=get_palette("Spectral", k = 6)[c(1,6)], xlab="Sequencing reads", 
-       ylab="False Positive Rate", title = "Associations of invariant taxa with metadata",
+ggline(resultlong, x="depths", y="FPR", color="method", facet.by="spread_v",
+       numeric.x.axis = T, add = "mean_se", palette=get_palette("Spectral", k = 11)[c(2,10)], xlab="Sequencing reads", 
+       ylab="FPR [FP/FP+TN]", title = "Associations of invariant taxa with metadata",
        legend.title="Method") + 
     xscale("log10", .format = TRUE) + 
-    theme_bw() + theme(plot.title = element_text(face = "bold"))
+    theme(panel.grid.major = element_line(colour = "gray97"), 
+          panel.grid.minor = element_line(colour = "gray97")) + 
+    theme(axis.title = element_text(face = "bold"), 
+          plot.title = element_text(size = 14, 
+                                    face = "bold"), legend.title = element_text(face = "bold"))
 ggsave("output/qmp_qmpnr/qmp_vs_qmpNR_invarianttaxa_metadata_nodysbiosis.pdf", device="pdf", 
-       width=11, height=5)
+       width=11, height=3.5)
 
 

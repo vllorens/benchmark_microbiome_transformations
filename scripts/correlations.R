@@ -621,8 +621,8 @@ for(file in list.files("data/correlations_taxontaxon", recursive = F, pattern = 
     reference_significant <- c(unlist(reference_file < significance_level))
     test_sign <- sign(c(unlist(rho_file)))
     reference_sign <- sign(c(unlist(referencerho_file)))
-
-    
+    test_sign[is.na(test_sign)] <- 1
+    reference_sign[is.na(reference_sign)] <- 1
     
     # populate evaluation vectors
     method <- c(method, methodname)
@@ -691,7 +691,7 @@ ggboxplot(results_all, x="method", y="Precision", fill="method_type", alpha=0.5,
     theme(axis.title = element_text(face = "bold"), 
           plot.title = element_text(size = 14, 
                                     face = "bold"), legend.title = element_text(face = "bold"))
-ggsave(filename = "output/taxontaxon/plot_taxontaxon_precision.ps", device = "ps", width = 11, height=5)
+ggsave(filename = "output/taxontaxon/plot_taxontaxon_precision.ps", device = "ps", width = 11, height=3.5)
 ggboxplot(results_all, x="method", y="Recall", alpha=0.5,
           fill="method_type", facet.by = c("scen"), 
           ylab="Recall [TP/TP+FN]",
@@ -706,10 +706,10 @@ ggboxplot(results_all, x="method", y="Recall", alpha=0.5,
     theme(axis.title = element_text(face = "bold"), 
           plot.title = element_text(size = 14, 
                                     face = "bold"), legend.title = element_text(face = "bold"))
-ggsave(filename = "output/taxontaxon/plot_taxontaxon_recall.ps", device = "ps", width = 11, height=5)
-ggboxplot(results_all, x="method", y="false_positive_percent", alpha=0.5,
+ggsave(filename = "output/taxontaxon/plot_taxontaxon_recall.ps", device = "ps", width = 11, height=3.5)
+ggboxplot(results_all, x="method", y="false_positive_rate", alpha=0.5,
           fill="method_type", facet.by = c( "scen"), 
-          ylab="% False positives",
+          ylab="False positive rate [FP/FP+TN]",
           palette=custom_palette,legend.title="Method type",
           main="Taxon-taxon correlations") + 
     ggsignif::stat_signif(comparisons = list(c("QMP", "QMP-NR")), test = "t.test", FDR = T) +
@@ -721,7 +721,7 @@ ggboxplot(results_all, x="method", y="false_positive_percent", alpha=0.5,
     theme(axis.title = element_text(face = "bold"), 
           plot.title = element_text(size = 14, 
                                     face = "bold"), legend.title = element_text(face = "bold"))
-ggsave(filename = "output/taxontaxon/plot_taxontaxon_FP.ps", device = "ps", width = 11, height=5)
+ggsave(filename = "output/taxontaxon/plot_taxontaxon_FPR.ps", device = "ps", width = 11, height=3.5)
 
 
 
@@ -768,7 +768,8 @@ for(file in list.files("data/correlations_taxonmetadata/", recursive = F, patter
     reference_significant <- c(unlist(reference_file < significance_level))
     test_sign <- sign(c(unlist(rho_file)))
     reference_sign <- sign(c(unlist(referencerho_file)))
-    
+    test_sign[is.na(test_sign)] <- 1
+    reference_sign[is.na(reference_sign)] <- 1
    
     
     # populate evaluation vectors
@@ -837,7 +838,7 @@ ggboxplot(results_all, x="method", y="Precision", alpha=0.5,
     theme(axis.title = element_text(face = "bold"), 
           plot.title = element_text(size = 14, 
                                     face = "bold"), legend.title = element_text(face = "bold"))
-ggsave(filename = "output/taxonmetadata/plot_taxonmetadata_precision.ps", device = "ps", width = 11, height=5)
+ggsave(filename = "output/taxonmetadata/plot_taxonmetadata_precision.ps", device = "ps", width = 11, height=3.5)
 ggboxplot(results_all, x="method", y="Recall", alpha=0.5,
           fill="method_type", facet.by = c("scen"), 
           ylab="Recall [TP/TP+FN]",
@@ -852,10 +853,10 @@ ggboxplot(results_all, x="method", y="Recall", alpha=0.5,
     theme(axis.title = element_text(face = "bold"), 
           plot.title = element_text(size = 14, 
                                     face = "bold"), legend.title = element_text(face = "bold"))
-ggsave(filename = "output/taxonmetadata/plot_taxonmetadata_recall.ps", device = "ps", width = 11, height=5)
-ggboxplot(results_all, x="method", y="false_positive_percent", alpha=0.5,
+ggsave(filename = "output/taxonmetadata/plot_taxonmetadata_recall.ps", device = "ps", width = 11, height=3.5)
+ggboxplot(results_all, x="method", y="false_positive_rate", alpha=0.5,
           fill="method_type", facet.by = c( "scen"), 
-          ylab="% False positives",
+          ylab="False positive rate [FP/FP+TN]",
           palette=custom_palette,legend.title="Method type",
           main="Taxon-metadata correlations") + 
     ggsignif::stat_signif(comparisons = list(c("QMP", "QMP-NR")), test = "t.test", FDR = T) +
@@ -867,4 +868,233 @@ ggboxplot(results_all, x="method", y="false_positive_percent", alpha=0.5,
     theme(axis.title = element_text(face = "bold"), 
           plot.title = element_text(size = 14, 
                                     face = "bold"), legend.title = element_text(face = "bold"))
-ggsave(filename = "output/taxonmetadata/plot_taxonmetadata_FP.ps", device = "ps", width = 11, height=5)
+ggsave(filename = "output/taxonmetadata/plot_taxonmetadata_FPR.ps", device = "ps", width = 11, height=3.5)
+
+
+
+
+#### Evaluate taxon-metadata correlations only in special taxa ####
+
+# define parameters for significance and initialize vectors for the evaluation data
+significance_level <- 0.05
+
+true_positive <- c()
+false_positive <- c()
+true_negative <- c()
+false_negative <- c()
+method <- c()
+spread <- c()
+matrixnum <- c()
+datatable <- c()
+scen <- c()
+specialtaxon <- c()
+matrix_stats <- read_tsv("data/raw/matrix_stats_3scenarios.tsv")
+
+for(file in list.files("data/correlations_taxonmetadata/", recursive = F, pattern = "pvalue", full.names = T)){
+    # define file name, method used and reference to be compared against
+    filename <- basename(file)
+    methodname <- strsplit(filename, split = "_")[[1]][3]
+    matrixname <- strsplit(filename, split = "_")[[1]][4]
+    spreadname <- strsplit(filename, split = "_")[[1]][5]
+    scenarioname <- strsplit(filename, split="_")[[1]][7] %>% gsub(., pattern="\\.tsv", replacement="")
+    referencename <- gsub(filename, pattern=methodname, replacement="REAL")
+    rhoname <- gsub(filename, pattern="pvalue", replacement="rho")
+    referencerhoname <- gsub(referencename, pattern="pvalue", replacement="rho")
+    if(scenarioname=="Blooming"){
+        # read files
+        test_file <- read.table(file, header=T, stringsAsFactors = F,sep="\t")
+        reference_file <- read.table(paste0("data/correlations_taxonmetadata/reference/", referencename),
+                                     header=T, stringsAsFactors=F, sep="\t")
+        rho_file <- read.table(paste0("data/correlations_taxonmetadata/", rhoname),
+                               header=T, stringsAsFactors = F, sep="\t")
+        referencerho_file <- read.table(paste0("data/correlations_taxonmetadata/reference/", referencerhoname),
+                                        header=T, stringsAsFactors = F, sep = "\t")
+        
+        # special taxon (bloomer)
+        sptax <- matrix_stats %>% dplyr::filter(matrix==matrixname) %>% pull(special_taxon)
+        test_file <- test_file[sptax,c(46:50,96:100), drop=F]
+        reference_file <- reference_file[sptax,c(46:50,96:100), drop=F]
+        rho_file <- rho_file[sptax,c(46:50,96:100), drop=F]
+        referencerho_file <- referencerho_file[sptax,c(46:50,96:100), drop=F]
+        
+        # all
+        test_significant <- c(unlist(test_file < significance_level))
+        reference_significant <- c(unlist(reference_file < significance_level))
+        test_sign <- sign(c(unlist(rho_file)))
+        reference_sign <- sign(c(unlist(referencerho_file)))
+        test_sign[is.na(test_sign)] <- 1
+        reference_sign[is.na(reference_sign)] <- 1
+        
+        # populate evaluation vectors
+        method <- c(method, methodname)
+        spread <- c(spread, spreadname)
+        matrixnum <- c(matrixnum, matrixname)
+        scen <- c(scen, scenarioname)
+        datatable <- c(datatable, "all")
+        true_positive <- c(true_positive, length(which(test_significant & reference_significant & test_sign==reference_sign)))
+        false_positive <- c(false_positive, length(which(test_significant & !reference_significant))+length(which(test_significant & reference_significant & test_sign!=reference_sign)))
+        true_negative <- c(true_negative, length(which(!test_significant & !reference_significant)))
+        false_negative <- c(false_negative, length(which(!test_significant & reference_significant)))
+        specialtaxon <- c(specialtaxon, "Bloomer")
+    }
+    if(scenarioname=="Dysbiosis"){
+        # read files
+        test_file <- read.table(file, header=T, stringsAsFactors = F,sep="\t")
+        reference_file <- read.table(paste0("data/correlations_taxonmetadata/reference/", referencename),
+                                     header=T, stringsAsFactors=F, sep="\t")
+        rho_file <- read.table(paste0("data/correlations_taxonmetadata/", rhoname),
+                               header=T, stringsAsFactors = F, sep="\t")
+        referencerho_file <- read.table(paste0("data/correlations_taxonmetadata/reference/", referencerhoname),
+                                        header=T, stringsAsFactors = F, sep = "\t")
+        
+        # special taxon (opportunist)
+        sptax <- matrix_stats %>% dplyr::filter(matrix==matrixname) %>% pull(special_taxon)
+        test_file <- test_file[sptax,c(46:50,96:100), drop=F]
+        reference_file <- reference_file[sptax,c(46:50,96:100), drop=F]
+        rho_file <- rho_file[sptax,c(46:50,96:100), drop=F]
+        referencerho_file <- referencerho_file[sptax,c(46:50,96:100), drop=F]
+        
+        # all
+        test_significant <- c(unlist(test_file < significance_level))
+        reference_significant <- c(unlist(reference_file < significance_level))
+        test_sign <- sign(c(unlist(rho_file)))
+        reference_sign <- sign(c(unlist(referencerho_file)))
+        test_sign[is.na(test_sign)] <- 1
+        reference_sign[is.na(reference_sign)] <- 1
+        
+        # populate evaluation vectors
+        method <- c(method, methodname)
+        spread <- c(spread, spreadname)
+        matrixnum <- c(matrixnum, matrixname)
+        scen <- c(scen, scenarioname)
+        datatable <- c(datatable, "all")
+        true_positive <- c(true_positive, length(which(test_significant & reference_significant & test_sign==reference_sign)))
+        false_positive <- c(false_positive, length(which(test_significant & !reference_significant))+length(which(test_significant & reference_significant & test_sign!=reference_sign)))
+        true_negative <- c(true_negative, length(which(!test_significant & !reference_significant)))
+        false_negative <- c(false_negative, length(which(!test_significant & reference_significant)))
+        specialtaxon <- c(specialtaxon, "Opportunist")
+        
+        # read files
+        test_file <- read.table(file, header=T, stringsAsFactors = F,sep="\t")
+        reference_file <- read.table(paste0("data/correlations_taxonmetadata/reference/", referencename),
+                                     header=T, stringsAsFactors=F, sep="\t")
+        rho_file <- read.table(paste0("data/correlations_taxonmetadata/", rhoname),
+                               header=T, stringsAsFactors = F, sep="\t")
+        referencerho_file <- read.table(paste0("data/correlations_taxonmetadata/reference/", referencerhoname),
+                                        header=T, stringsAsFactors = F, sep = "\t")
+        
+        # special taxon (unresponsive)
+        sptax <- matrix_stats %>% dplyr::filter(matrix==matrixname) %>% pull(flat_taxon_dysbiosis)
+        test_file <- test_file[sptax,c(46:50,96:100), drop=F]
+        reference_file <- reference_file[sptax,c(46:50,96:100), drop=F]
+        rho_file <- rho_file[sptax,c(46:50,96:100), drop=F]
+        referencerho_file <- referencerho_file[sptax,c(46:50,96:100), drop=F]
+        
+        # all
+        test_significant <- c(unlist(test_file < significance_level))
+        reference_significant <- c(unlist(reference_file < significance_level))
+        test_sign <- sign(c(unlist(rho_file)))
+        reference_sign <- sign(c(unlist(referencerho_file)))
+        test_sign[is.na(test_sign)] <- 1
+        reference_sign[is.na(reference_sign)] <- 1
+        
+        # populate evaluation vectors
+        method <- c(method, methodname)
+        spread <- c(spread, spreadname)
+        matrixnum <- c(matrixnum, matrixname)
+        scen <- c(scen, scenarioname)
+        datatable <- c(datatable, "all")
+        true_positive <- c(true_positive, length(which(test_significant & reference_significant & test_sign==reference_sign)))
+        false_positive <- c(false_positive, length(which(test_significant & !reference_significant))+length(which(test_significant & reference_significant & test_sign!=reference_sign)))
+        true_negative <- c(true_negative, length(which(!test_significant & !reference_significant)))
+        false_negative <- c(false_negative, length(which(!test_significant & reference_significant)))
+        specialtaxon <- c(specialtaxon, "Unresponsive")
+    }
+}
+
+
+# write results table
+results <- tibble(method, spread, scen, matrixnum, datatable, specialtaxon, true_positive, false_positive, true_negative, false_negative)
+results <- results %>%
+    mutate(FDR=100*false_positive/(false_positive+true_positive)) %>% 
+    mutate(Recall=100*true_positive/(true_positive+false_negative)) %>% 
+    mutate(Precision=100-FDR) %>% 
+    mutate(Specificity=100*true_negative/(true_negative+false_positive)) %>% 
+    mutate(Accuracy=100*(true_positive+true_negative)/(true_positive+true_negative+false_positive+false_negative)) %>% 
+    mutate(true_positive_percent=100*true_positive/(true_positive+true_negative+false_positive+false_negative)) %>% 
+    mutate(false_positive_percent=100*false_positive/(true_positive+true_negative+false_positive+false_negative)) %>% 
+    mutate(true_negative_percent=100*true_negative/(true_positive+true_negative+false_positive+false_negative)) %>% 
+    mutate(false_negative_percent=100*false_negative/(true_positive+true_negative+false_positive+false_negative)) %>% 
+    mutate(false_positive_rate=100*false_positive/(true_negative+false_positive)) %>% 
+    dplyr::select(-c(true_positive,true_negative,false_positive,false_negative))
+
+write_tsv(results, "output/taxonmetadata/statistics_taxonmetadata_correlation_onlyspecialtaxa.tsv", col_names = T)
+method_type <- tibble(method=c("RMP", "AST", "CLR", "CSS", "GMPR",
+                               "UQ", "RLE", "TMM", "VST", "QMP", "QMP-NR"),
+                      method_type=c("Traditional transformations", 
+                                    rep("Compositional transformations", times=8),
+                                    rep("Quantitative transformations", times=2)))
+
+results <- results %>% 
+    left_join(method_type, by="method")
+
+results$method_type <- factor(results$method_type, 
+                              levels=c("Sequencing", "Traditional transformations", 
+                                       "Compositional transformations",
+                                       "Quantitative transformations"))
+results$method <- factor(results$method, levels=c("RMP", "AST", "CLR", "CSS", "GMPR",
+                                                  "UQ", "RLE", "TMM", "VST", "QMP", "QMP-NR"))
+
+results$spread <- factor(results$spread, levels=c("low", "high"))
+results$scen <- factor(results$scen, levels=c("Healthy", "Dysbiosis", "Blooming"))
+results_all <- results %>% dplyr::filter(datatable=="all")
+
+
+custom_palette=get_palette("Spectral",11)[c(2,5,10)]
+# all data
+ggboxplot(results_all, x="method", y="Precision", alpha=0.5,
+          fill="method_type", facet.by = c( "specialtaxon"), 
+          ylab="Precision [TP/TP+FP]",
+          palette=custom_palette, legend.title="Method type",
+          main="Taxon-metadata correlations (special taxa)") + 
+    ggsignif::stat_signif(comparisons = list(c("QMP", "QMP-NR")), test = "t.test", FDR = T) +
+    geom_point(aes(fill=method_type), size=2, shape=21, colour="grey20",
+               position=position_jitter(width=0.2, height=0)) +
+    theme_bw()+ rotate_x_text(45) +
+    theme(panel.grid.major = element_line(colour = "gray97"), 
+          panel.grid.minor = element_line(colour = "gray97")) + 
+    theme(axis.title = element_text(face = "bold"), 
+          plot.title = element_text(size = 14, 
+                                    face = "bold"), legend.title = element_text(face = "bold"))
+ggsave(filename = "output/taxonmetadata/plot_taxonmetadata_precision_specialtaxa.ps", device = "ps", width = 11, height=3.5)
+ggboxplot(results_all, x="method", y="Recall", alpha=0.5,
+          fill="method_type", facet.by = c("specialtaxon"), 
+          ylab="Recall [TP/TP+FN]",
+          palette=custom_palette,legend.title="Method type",
+          main="Taxon-metadata correlations (special taxa)") + 
+    ggsignif::stat_signif(comparisons = list(c("QMP", "QMP-NR")), test = "t.test", FDR = T) +
+    geom_point(aes(fill=method_type), size=2, shape=21, colour="grey20",
+               position=position_jitter(width=0.2, height=0)) +
+    theme_bw()+ rotate_x_text(45) +
+    theme(panel.grid.major = element_line(colour = "gray97"), 
+          panel.grid.minor = element_line(colour = "gray97")) + 
+    theme(axis.title = element_text(face = "bold"), 
+          plot.title = element_text(size = 14, 
+                                    face = "bold"), legend.title = element_text(face = "bold"))
+ggsave(filename = "output/taxonmetadata/plot_taxonmetadata_recall_specialtaxa.ps", device = "ps", width = 11, height=3.5)
+ggboxplot(results_all, x="method", y="false_positive_rate", alpha=0.5,
+          fill="method_type", facet.by = c( "specialtaxon"), 
+          ylab="False positive rate [FP/FP+TN]",
+          palette=custom_palette,legend.title="Method type",
+          main="Taxon-metadata correlations (special taxa)") + 
+    ggsignif::stat_signif(comparisons = list(c("QMP", "QMP-NR")), test = "t.test", FDR = T) +
+    geom_point(aes(fill=method_type), size=2, shape=21, colour="grey20",
+               position=position_jitter(width=0.2, height=0)) +
+    theme_bw()+ rotate_x_text(45) +
+    theme(panel.grid.major = element_line(colour = "gray97"), 
+          panel.grid.minor = element_line(colour = "gray97")) + 
+    theme(axis.title = element_text(face = "bold"), 
+          plot.title = element_text(size = 14, 
+                                    face = "bold"), legend.title = element_text(face = "bold"))
+ggsave(filename = "output/taxonmetadata/plot_taxonmetadata_FPR_specialtaxa.ps", device = "ps", width = 11, height=3.5)
+
