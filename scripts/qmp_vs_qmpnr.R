@@ -100,6 +100,57 @@ for(file in list.files("data/tax_matrices", full.names = T)){
         # select taxa that are not correlated to the number of cell counts, and therefore should not be correlated to metadata associated to counts
         not_cor <- which(taxoncor[[2]]>0.05)
         
+        # Assess performance on ALL TAXA
+        file_qmp <- data_qmp
+        file_qmp[[2]] <- matrix(p.adjust(as.vector(as.matrix(file_qmp[[2]])), method='fdr'),ncol=ncol(file_qmp[[2]]))
+        colnames(file_qmp[[2]]) <- colnames(file_qmp[[1]])
+        rownames(file_qmp[[2]]) <- rownames(file_qmp[[1]])
+        file_qmpnr <- data_qmpnr
+        file_qmpnr[[2]] <- matrix(p.adjust(as.vector(as.matrix(file_qmpnr[[2]])), method='fdr'),ncol=ncol(file_qmpnr[[2]]))
+        colnames(file_qmpnr[[2]]) <- colnames(file_qmpnr[[1]])
+        rownames(file_qmpnr[[2]]) <- rownames(file_qmpnr[[1]])
+        file_reference <- file_real
+        file_reference[[2]] <- matrix(p.adjust(as.vector(as.matrix(file_reference[[2]])), method='fdr'),ncol=ncol(file_reference[[2]]))
+        colnames(file_reference[[2]]) <- colnames(file_reference[[1]])
+        rownames(file_reference[[2]]) <- rownames(file_reference[[1]])
+        
+        # assess performance
+        test_significant_qmp_all <- c(unlist(file_qmp[[2]] < 0.05))
+        test_significant_qmpnr_all <- c(unlist(file_qmpnr[[2]] < 0.05))
+        reference_significant_all <- c(unlist(file_reference[[2]] < 0.05))
+        test_sign_qmp_all <- sign(c(unlist(file_qmp[[1]])))
+        test_sign_qmpnr_all <- sign(c(unlist(file_qmpnr[[1]])))
+        reference_sign_all <- sign(c(unlist(file_reference[[1]])))
+        test_sign_qmp_all[is.na(test_sign_qmp_all)] <- 1
+        test_sign_qmpnr_all[is.na(test_sign_qmpnr_all)] <- 1
+        reference_sign_all[is.na(reference_sign_all)] <- 1
+        
+        tpqmp <- length(which(test_significant_qmp_all & reference_significant_all & test_sign_qmp_all==reference_sign_all))
+        tpqmpnr <- length(which(test_significant_qmpnr_all & reference_significant_all & test_sign_qmpnr_all==reference_sign_all))
+        
+        fpqmp <- length(which(test_significant_qmp_all & !reference_significant_all))+length(which(test_significant_qmp_all & reference_significant_all & test_sign_qmp_all!=reference_sign_all))
+        fpqmpnr <- length(which(test_significant_qmpnr_all & !reference_significant_all))+length(which(test_significant_qmpnr_all & reference_significant_all & test_sign_qmpnr_all!=reference_sign_all))
+        
+        tnqmp <- length(which(!test_significant_qmp_all & !reference_significant_all))
+        tnqmpnr <- length(which(!test_significant_qmpnr_all & !reference_significant_all))
+        
+        fnqmp <- length(which(!test_significant_qmp_all & reference_significant_all))
+        fnqmpnr <- length(which(!test_significant_qmpnr_all & reference_significant_all))
+        
+        fdr_qmp <- c(fdr_qmp, fpqmp/(fpqmp+tpqmp))
+        fdr_qmpnr <- c(fdr_qmpnr, fpqmpnr/(fpqmpnr+tpqmpnr))
+        spread_v <- c(spread_v, spread_name)
+        scenario_v <- c(scenario_v, scenario_name)
+        fp_qmp <- c(fp_qmp, fpqmp/(fpqmp+tnqmp))
+        fp_qmpnr <- c(fp_qmpnr, fpqmpnr/(fpqmpnr+tnqmpnr))
+        tp_qmp <- c(tp_qmp, tpqmp/(tpqmp+fnqmp))
+        tp_qmpnr <- c(tp_qmpnr, tpqmpnr/(tpqmpnr+fnqmpnr))
+        pr_qmp <- c(pr_qmp, tpqmp/(tpqmp+fpqmp))
+        pr_qmpnr <- c(pr_qmpnr, tpqmpnr/(tpqmpnr+fpqmpnr))
+        depths <- c(depths, exp(depth))
+        matname <- c(matname, matrix_name)
+        valuesused <- c(valuesused, "all")
+        
         # Assess performance on INVARIANT TAXA
         if(length(not_cor)>0){  
             file_qmp <- data_qmp
@@ -111,16 +162,6 @@ for(file in list.files("data/tax_matrices", full.names = T)){
             file_reference <- file_real
             file_reference[[1]] <- file_reference[[1]][not_cor,c(46:50,96:100)]    
             file_reference[[2]] <- file_reference[[2]][not_cor,c(46:50,96:100)]  
-            
-            # file_qmp[[2]] <- matrix(p.adjust(as.vector(as.matrix(file_qmp[[2]])), method='fdr'),ncol=ncol(file_qmp[[2]]))
-            # colnames(file_qmp[[2]]) <- colnames(file_qmp[[1]])
-            # rownames(file_qmp[[2]]) <- rownames(file_qmp[[1]])
-            # file_qmpnr[[2]] <- matrix(p.adjust(as.vector(as.matrix(file_qmpnr[[2]])), method='fdr'),ncol=ncol(file_qmpnr[[2]]))
-            # colnames(file_qmpnr[[2]]) <- colnames(file_qmpnr[[1]])
-            # rownames(file_qmpnr[[2]]) <- rownames(file_qmpnr[[1]])
-            # file_reference[[2]] <- matrix(p.adjust(as.vector(as.matrix(file_reference[[2]])), method='fdr'),ncol=ncol(file_reference[[2]]))
-            # colnames(file_reference[[2]]) <- colnames(file_reference[[1]])
-            # rownames(file_reference[[2]]) <- rownames(file_reference[[1]])
             
             # assess performance
             test_significant_qmp <- c(unlist(file_qmp[[2]] < 0.05))
@@ -160,60 +201,89 @@ for(file in list.files("data/tax_matrices", full.names = T)){
             matname <- c(matname, matrix_name)
             valuesused <- c(valuesused, "invariant")
         }
-        # Assess performance on ALL TAXA
-        data_qmp[[2]] <- matrix(p.adjust(as.vector(as.matrix(data_qmp[[2]])), method='fdr'),ncol=ncol(data_qmp[[2]]))
-        colnames(data_qmp[[2]]) <- colnames(data_qmp[[1]])
-        rownames(data_qmp[[2]]) <- rownames(data_qmp[[1]])
-        data_qmpnr[[2]] <- matrix(p.adjust(as.vector(as.matrix(data_qmpnr[[2]])), method='fdr'),ncol=ncol(data_qmpnr[[2]]))
-        colnames(data_qmpnr[[2]]) <- colnames(data_qmpnr[[1]])
-        rownames(data_qmpnr[[2]]) <- rownames(data_qmpnr[[1]])
-        file_real[[2]] <- matrix(p.adjust(as.vector(as.matrix(file_real[[2]])), method='fdr'),ncol=ncol(file_real[[2]]))
-        colnames(file_real[[2]]) <- colnames(file_real[[1]])
-        rownames(file_real[[2]]) <- rownames(file_real[[1]])
-        
-        # assess performance
-        test_significant_qmp_all <- c(unlist(file_qmp[[2]] < 0.05))
-        test_significant_qmpnr_all <- c(unlist(file_qmpnr[[2]] < 0.05))
-        reference_significant_all <- c(unlist(file_real[[2]] < 0.05))
-        test_sign_qmp_all <- sign(c(unlist(file_qmp[[1]])))
-        test_sign_qmpnr_all <- sign(c(unlist(file_qmpnr[[1]])))
-        reference_sign_all <- sign(c(unlist(file_real[[1]])))
-        test_sign_qmp_all[is.na(test_sign_qmp_all)] <- 1
-        test_sign_qmpnr_all[is.na(test_sign_qmpnr_all)] <- 1
-        reference_sign_all[is.na(reference_sign_all)] <- 1
-        
-        tpqmp <- length(which(test_significant_qmp & reference_significant & test_sign_qmp==reference_sign))
-        tpqmpnr <- length(which(test_significant_qmpnr & reference_significant & test_sign_qmpnr==reference_sign))
-        
-        fpqmp <- length(which(test_significant_qmp & !reference_significant))+length(which(test_significant_qmp & reference_significant & test_sign_qmp!=reference_sign))
-        fpqmpnr <- length(which(test_significant_qmpnr & !reference_significant))+length(which(test_significant_qmpnr & reference_significant & test_sign_qmpnr!=reference_sign))
-        
-        tnqmp <- length(which(!test_significant_qmp & !reference_significant))
-        tnqmpnr <- length(which(!test_significant_qmpnr & !reference_significant))
-        
-        fnqmp <- length(which(!test_significant_qmp & reference_significant))
-        fnqmpnr <- length(which(!test_significant_qmpnr & reference_significant))
-        
-        
-        fdr_qmp <- c(fdr_qmp, fpqmp/(fpqmp+tpqmp))
-        fdr_qmpnr <- c(fdr_qmpnr, fpqmpnr/(fpqmpnr+tpqmpnr))
-        spread_v <- c(spread_v, spread_name)
-        scenario_v <- c(scenario_v, scenario_name)
-        fp_qmp <- c(fp_qmp, fpqmp/(fpqmp+tnqmp))
-        fp_qmpnr <- c(fp_qmpnr, fpqmpnr/(fpqmpnr+tnqmpnr))
-        tp_qmp <- c(tp_qmp, tpqmp/(tpqmp+fnqmp))
-        tp_qmpnr <- c(tp_qmpnr, tpqmpnr/(tpqmpnr+fnqmpnr))
-        pr_qmp <- c(pr_qmp, tpqmp/(tpqmp+fpqmp))
-        pr_qmpnr <- c(pr_qmpnr, tpqmpnr/(tpqmpnr+fpqmpnr))
-        depths <- c(depths, exp(depth))
-        matname <- c(matname, matrix_name)
-        valuesused <- c(valuesused, "all")
     }
     
     
     result <- tibble(fdr_qmp, fdr_qmpnr, spread_v, scenario_v, fp_qmp, fp_qmpnr, tp_qmp, tp_qmpnr, pr_qmp, pr_qmpnr, depths, matname, valuesused)
     write_tsv(result, "output/qmp_qmpnr/qmp_vs_qmpnr_taxonmetadata_depths.tsv", col_names = T)
 }
+
+
+#### Assess performance of both QMP and QMP-NR ####
+
+result <- read_tsv("output/qmp_qmpnr/qmp_vs_qmpnr_taxonmetadata_depths.tsv", col_names=T)
+resultlong <- result %>% 
+    dplyr::filter(valuesused=="all") %>% 
+    dplyr::select(-c(fdr_qmp, fdr_qmpnr, tp_qmp, tp_qmpnr, pr_qmp, pr_qmpnr, valuesused)) %>% 
+    gather(., key = "method", value="FPR", -c(spread_v, scenario_v, depths, matname))
+
+resultlong$method <- resultlong$method %>% gsub(., pattern="fp_qmpnr", replacement="QMP-NR")
+resultlong$method <- resultlong$method %>% gsub(., pattern="fp_qmp", replacement="QMP")
+resultlong$spread_v <- resultlong$spread_v %>% gsub(., pattern="low", replacement="Low")
+resultlong$spread_v <- resultlong$spread_v %>% gsub(., pattern="medium", replacement="Medium")
+resultlong$spread_v <- resultlong$spread_v %>% gsub(., pattern="high", replacement="High")
+resultlong$spread_v <- factor(resultlong$spread_v, levels=c("Low", "Medium", "High"))
+ggline(resultlong, x="depths", y="FPR", color="method", facet.by="spread_v",
+       numeric.x.axis = T, add = "mean_se", palette=get_palette("Spectral", k = 11)[c(2,10)], xlab="Sequencing reads", 
+       ylab="FPR [FP/FP+TN]", title = "Associations of invariant taxa with metadata",
+       legend.title="Method") + 
+    xscale("log10", .format = TRUE) + 
+    theme_bw() + 
+    theme(panel.grid.major = element_line(colour = "gray97"), 
+          panel.grid.minor = element_line(colour = "gray97")) + 
+    theme(axis.title = element_text(face = "bold"), 
+          plot.title = element_text(size = 14, 
+                                    face = "bold"), legend.title = element_text(face = "bold"))
+ggsave("output/qmp_qmpnr/qmp_vs_qmpNR_invarianttaxa_metadata.pdf", device="pdf", 
+       width=11, height=3.5)
+
+resultlong <- resultlong %>% 
+    dplyr::filter(scenario_v!="Dysbiosis")
+ggline(resultlong, x="depths", y="FPR", color="method", facet.by="spread_v",
+       numeric.x.axis = T, add = "mean_se", palette=get_palette("Spectral", k = 11)[c(2,10)], xlab="Sequencing reads", 
+       ylab="FPR [FP/FP+TN]", title = "Associations of invariant taxa with metadata",
+       legend.title="Method") + 
+    xscale("log10", .format = TRUE) + 
+    theme_bw() + 
+    theme(panel.grid.major = element_line(colour = "gray97"), 
+          panel.grid.minor = element_line(colour = "gray97")) + 
+    theme(axis.title = element_text(face = "bold"), 
+          plot.title = element_text(size = 14, 
+                                    face = "bold"), legend.title = element_text(face = "bold"))
+ggsave("output/qmp_qmpnr/qmp_vs_qmpNR_invarianttaxa_metadata_nodysbiosis.pdf", device="pdf", 
+       width=11, height=3.5)
+
+
+
+result <- read_tsv("output/qmp_qmpnr/qmp_vs_qmpnr_taxonmetadata_depths.tsv", col_names=T)
+resultlong <- result %>% 
+    dplyr::filter(valuesused=="all") %>% 
+    dplyr::select(-c(fdr_qmp, fdr_qmpnr, tp_qmp, tp_qmpnr, fp_qmp, fp_qmpnr, valuesused)) %>% 
+    gather(., key = "method", value="Precision", -c(spread_v, scenario_v, depths, matname))
+
+
+resultlong$method <- resultlong$method %>% gsub(., pattern="pr_qmpnr", replacement="QMP-NR")
+resultlong$method <- resultlong$method %>% gsub(., pattern="pr_qmp", replacement="QMP")
+resultlong$spread_v <- resultlong$spread_v %>% gsub(., pattern="low", replacement="Low")
+resultlong$spread_v <- resultlong$spread_v %>% gsub(., pattern="medium", replacement="Medium")
+resultlong$spread_v <- resultlong$spread_v %>% gsub(., pattern="high", replacement="High")
+resultlong$spread_v <- factor(resultlong$spread_v, levels=c("Low", "Medium", "High"))
+
+ggline(resultlong, x="depths", y="Precision", color="method", facet.by="spread_v",
+       numeric.x.axis = T, add = "mean_se", palette=get_palette("Spectral", k = 11)[c(2,10)], xlab="Sequencing reads", 
+       ylab="Precision [TP/TP+FP]", title = "Associations of invariant taxa with metadata",
+       legend.title="Method") + 
+    xscale("log10", .format = TRUE) + 
+    theme_bw() + 
+    theme(panel.grid.major = element_line(colour = "gray97"), 
+          panel.grid.minor = element_line(colour = "gray97")) + 
+    theme(axis.title = element_text(face = "bold"), 
+          plot.title = element_text(size = 14, 
+                                    face = "bold"), legend.title = element_text(face = "bold"))
+
+ggsave("output/qmp_qmpnr/qmp_vs_qmpNR_invarianttaxa_metadata.pdf", device="pdf", 
+       width=11, height=3.5)
+
 
 
 #### Assess performance of both QMP and QMP-NR ####
@@ -276,9 +346,9 @@ resultlong$spread_v <- resultlong$spread_v %>% gsub(., pattern="high", replaceme
 resultlong$spread_v <- factor(resultlong$spread_v, levels=c("Low", "Medium", "High"))
 
 ggscatter(resultlong, x="FPR", y="TPR", color="methodTPR", facet.by="spread_v",
-       palette=get_palette("Spectral", k = 11)[c(2,10)], 
-       ylab="TPR [TP/TP+FN]", xlab="FPR [FP/FP+TN]", title = "Associations of invariant taxa with metadata",
-       legend.title="Method") + 
+          palette=get_palette("Spectral", k = 11)[c(2,10)], 
+          ylab="TPR [TP/TP+FN]", xlab="FPR [FP/FP+TN]", title = "Associations of invariant taxa with metadata",
+          legend.title="Method") + 
     theme_bw() + 
     theme(panel.grid.major = element_line(colour = "gray97"), 
           panel.grid.minor = element_line(colour = "gray97")) + 
