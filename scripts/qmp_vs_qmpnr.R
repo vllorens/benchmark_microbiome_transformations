@@ -223,9 +223,9 @@ resultlong$spread_v <- resultlong$spread_v %>% gsub(., pattern="low", replacemen
 resultlong$spread_v <- resultlong$spread_v %>% gsub(., pattern="medium", replacement="Medium")
 resultlong$spread_v <- resultlong$spread_v %>% gsub(., pattern="high", replacement="High")
 resultlong$spread_v <- factor(resultlong$spread_v, levels=c("Low", "Medium", "High"))
-ggline(resultlong, x="depths", y="FPR", color="method", facet.by="spread_v",
+fprall <- ggline(resultlong, x="depths", y="FPR", color="method", facet.by="spread_v",
        numeric.x.axis = T, add = "mean_se", palette=get_palette("Spectral", k = 11)[c(2,10)], xlab="Sequencing reads", 
-       ylab="FPR [FP/FP+TN]", title = "Associations of invariant taxa with metadata",
+       ylab="FPR [FP/FP+TN]", title = "Taxa-metadata associations - FPR",
        legend.title="Method") + 
     xscale("log10", .format = TRUE) + 
     theme_bw() + 
@@ -234,25 +234,8 @@ ggline(resultlong, x="depths", y="FPR", color="method", facet.by="spread_v",
     theme(axis.title = element_text(face = "bold"), 
           plot.title = element_text(size = 14, 
                                     face = "bold"), legend.title = element_text(face = "bold"))
-ggsave("output/qmp_qmpnr/qmp_vs_qmpNR_invarianttaxa_metadata.pdf", device="pdf", 
+ggsave(fprall, file="output/qmp_qmpnr/qmp_vs_qmpNR_alltaxa_fdr_metadata.pdf", device="pdf", 
        width=11, height=3.5)
-
-resultlong <- resultlong %>% 
-    dplyr::filter(scenario_v!="Dysbiosis")
-ggline(resultlong, x="depths", y="FPR", color="method", facet.by="spread_v",
-       numeric.x.axis = T, add = "mean_se", palette=get_palette("Spectral", k = 11)[c(2,10)], xlab="Sequencing reads", 
-       ylab="FPR [FP/FP+TN]", title = "Associations of invariant taxa with metadata",
-       legend.title="Method") + 
-    xscale("log10", .format = TRUE) + 
-    theme_bw() + 
-    theme(panel.grid.major = element_line(colour = "gray97"), 
-          panel.grid.minor = element_line(colour = "gray97")) + 
-    theme(axis.title = element_text(face = "bold"), 
-          plot.title = element_text(size = 14, 
-                                    face = "bold"), legend.title = element_text(face = "bold"))
-ggsave("output/qmp_qmpnr/qmp_vs_qmpNR_invarianttaxa_metadata_nodysbiosis.pdf", device="pdf", 
-       width=11, height=3.5)
-
 
 
 result <- read_tsv("output/qmp_qmpnr/qmp_vs_qmpnr_taxonmetadata_depths.tsv", col_names=T)
@@ -269,9 +252,9 @@ resultlong$spread_v <- resultlong$spread_v %>% gsub(., pattern="medium", replace
 resultlong$spread_v <- resultlong$spread_v %>% gsub(., pattern="high", replacement="High")
 resultlong$spread_v <- factor(resultlong$spread_v, levels=c("Low", "Medium", "High"))
 
-ggline(resultlong, x="depths", y="Precision", color="method", facet.by="spread_v",
+precisionall <- ggline(resultlong, x="depths", y="Precision", color="method", facet.by="spread_v",
        numeric.x.axis = T, add = "mean_se", palette=get_palette("Spectral", k = 11)[c(2,10)], xlab="Sequencing reads", 
-       ylab="Precision [TP/TP+FP]", title = "Associations of invariant taxa with metadata",
+       ylab="Precision [TP/TP+FP]", title = "Taxa-metadata associations - Precision",
        legend.title="Method") + 
     xscale("log10", .format = TRUE) + 
     theme_bw() + 
@@ -280,17 +263,46 @@ ggline(resultlong, x="depths", y="Precision", color="method", facet.by="spread_v
     theme(axis.title = element_text(face = "bold"), 
           plot.title = element_text(size = 14, 
                                     face = "bold"), legend.title = element_text(face = "bold"))
-
-ggsave("output/qmp_qmpnr/qmp_vs_qmpNR_invarianttaxa_metadata.pdf", device="pdf", 
+ggsave(precisionall, file="output/qmp_qmpnr/qmp_vs_qmpNR_alltaxa_precision_metadata.pdf", device="pdf", 
        width=11, height=3.5)
 
 
+result <- read_tsv("output/qmp_qmpnr/qmp_vs_qmpnr_taxonmetadata_depths.tsv", col_names=T)
+resultlong <- result %>% 
+    dplyr::filter(valuesused=="all") %>% 
+    dplyr::select(-c(fdr_qmp, fdr_qmpnr, pr_qmp, pr_qmpnr, fp_qmp, fp_qmpnr, valuesused)) %>% 
+    gather(., key = "method", value="Recall", -c(spread_v, scenario_v, depths, matname))
 
-#### Assess performance of both QMP and QMP-NR ####
+
+resultlong$method <- resultlong$method %>% gsub(., pattern="tp_qmpnr", replacement="QMP-NR")
+resultlong$method <- resultlong$method %>% gsub(., pattern="tp_qmp", replacement="QMP")
+resultlong$spread_v <- resultlong$spread_v %>% gsub(., pattern="low", replacement="Low")
+resultlong$spread_v <- resultlong$spread_v %>% gsub(., pattern="medium", replacement="Medium")
+resultlong$spread_v <- resultlong$spread_v %>% gsub(., pattern="high", replacement="High")
+resultlong$spread_v <- factor(resultlong$spread_v, levels=c("Low", "Medium", "High"))
+
+recallall <- ggline(resultlong, x="depths", y="Recall", color="method", facet.by="spread_v",
+       numeric.x.axis = T, add = "mean_se", palette=get_palette("Spectral", k = 11)[c(2,10)], xlab="Sequencing reads", 
+       ylab="Recall [TP/TP+FN]", title = "Taxa-metadata associations - Recall",
+       legend.title="Method") + 
+    xscale("log10", .format = TRUE) + 
+    theme_bw() + 
+    theme(panel.grid.major = element_line(colour = "gray97"), 
+          panel.grid.minor = element_line(colour = "gray97")) + 
+    theme(axis.title = element_text(face = "bold"), 
+          plot.title = element_text(size = 14, 
+                                    face = "bold"), legend.title = element_text(face = "bold"))
+ggsave(recallall, file="output/qmp_qmpnr/qmp_vs_qmpNR_alltaxa_recall_metadata.pdf", device="pdf", 
+       width=11, height=3.5)
+
+
+#### Assess performance of both QMP and QMP-NR (invariant taxa only, no dysbiosis) ####
 
 result <- read_tsv("output/qmp_qmpnr/qmp_vs_qmpnr_taxonmetadata_depths.tsv", col_names=T)
 resultlong <- result %>% 
-    dplyr::select(-c(fdr_qmp, fdr_qmpnr, tp_qmp, tp_qmpnr, pr_qmp, pr_qmpnr)) %>% 
+    dplyr::filter(valuesused=="invariant") %>% 
+    dplyr::filter(scenario_v!="Dysbiosis") %>% 
+    dplyr::select(-c(fdr_qmp, fdr_qmpnr, tp_qmp, tp_qmpnr, pr_qmp, pr_qmpnr, valuesused)) %>% 
     gather(., key = "method", value="FPR", -c(spread_v, scenario_v, depths, matname))
 
 resultlong$method <- resultlong$method %>% gsub(., pattern="fp_qmpnr", replacement="QMP-NR")
@@ -299,9 +311,9 @@ resultlong$spread_v <- resultlong$spread_v %>% gsub(., pattern="low", replacemen
 resultlong$spread_v <- resultlong$spread_v %>% gsub(., pattern="medium", replacement="Medium")
 resultlong$spread_v <- resultlong$spread_v %>% gsub(., pattern="high", replacement="High")
 resultlong$spread_v <- factor(resultlong$spread_v, levels=c("Low", "Medium", "High"))
-ggline(resultlong, x="depths", y="FPR", color="method", facet.by="spread_v",
+fprinv <- ggline(resultlong, x="depths", y="FPR", color="method", facet.by="spread_v",
        numeric.x.axis = T, add = "mean_se", palette=get_palette("Spectral", k = 11)[c(2,10)], xlab="Sequencing reads", 
-       ylab="FPR [FP/FP+TN]", title = "Associations of invariant taxa with metadata",
+       ylab="FPR [FP/FP+TN]", title = "Invariant taxa-metadata associations - FPR",
        legend.title="Method") + 
     xscale("log10", .format = TRUE) + 
     theme_bw() + 
@@ -310,50 +322,72 @@ ggline(resultlong, x="depths", y="FPR", color="method", facet.by="spread_v",
     theme(axis.title = element_text(face = "bold"), 
           plot.title = element_text(size = 14, 
                                     face = "bold"), legend.title = element_text(face = "bold"))
-ggsave("output/qmp_qmpnr/qmp_vs_qmpNR_invarianttaxa_metadata.pdf", device="pdf", 
+ggsave(fprinv, file="output/qmp_qmpnr/qmp_vs_qmpNR_invtaxa_fdr_metadata.pdf", device="pdf", 
        width=11, height=3.5)
-
-resultlong <- resultlong %>% 
-    dplyr::filter(scenario_v!="Dysbiosis")
-ggline(resultlong, x="depths", y="FPR", color="method", facet.by="spread_v",
-       numeric.x.axis = T, add = "mean_se", palette=get_palette("Spectral", k = 11)[c(2,10)], xlab="Sequencing reads", 
-       ylab="FPR [FP/FP+TN]", title = "Associations of invariant taxa with metadata",
-       legend.title="Method") + 
-    xscale("log10", .format = TRUE) + 
-    theme_bw() + 
-    theme(panel.grid.major = element_line(colour = "gray97"), 
-          panel.grid.minor = element_line(colour = "gray97")) + 
-    theme(axis.title = element_text(face = "bold"), 
-          plot.title = element_text(size = 14, 
-                                    face = "bold"), legend.title = element_text(face = "bold"))
-ggsave("output/qmp_qmpnr/qmp_vs_qmpNR_invarianttaxa_metadata_nodysbiosis.pdf", device="pdf", 
-       width=11, height=3.5)
-
-
 
 
 result <- read_tsv("output/qmp_qmpnr/qmp_vs_qmpnr_taxonmetadata_depths.tsv", col_names=T)
 resultlong <- result %>% 
-    dplyr::select(-c(fdr_qmp, fdr_qmpnr, pr_qmp, pr_qmpnr)) %>% 
-    gather(., key = "methodTPR", value="TPR", -c(spread_v, scenario_v, depths, matname, fp_qmp, fp_qmpnr)) %>% 
-    gather(., key = "methodFPR", value="FPR", -c(spread_v, scenario_v, depths, matname, methodTPR, TPR)) 
+    dplyr::filter(valuesused=="invariant") %>% 
+    dplyr::filter(scenario_v!="Dysbiosis") %>% 
+    dplyr::select(-c(fdr_qmp, fdr_qmpnr, tp_qmp, tp_qmpnr, fp_qmp, fp_qmpnr, valuesused)) %>% 
+    gather(., key = "method", value="Precision", -c(spread_v, scenario_v, depths, matname))
 
-resultlong$methodTPR <- resultlong$methodTPR %>% gsub(., pattern="tp_qmpnr", replacement="QMP-NR")
-resultlong$methodTPR <- resultlong$methodTPR %>% gsub(., pattern="tp_qmp", replacement="QMP")
+
+resultlong$method <- resultlong$method %>% gsub(., pattern="pr_qmpnr", replacement="QMP-NR")
+resultlong$method <- resultlong$method %>% gsub(., pattern="pr_qmp", replacement="QMP")
 resultlong$spread_v <- resultlong$spread_v %>% gsub(., pattern="low", replacement="Low")
 resultlong$spread_v <- resultlong$spread_v %>% gsub(., pattern="medium", replacement="Medium")
 resultlong$spread_v <- resultlong$spread_v %>% gsub(., pattern="high", replacement="High")
 resultlong$spread_v <- factor(resultlong$spread_v, levels=c("Low", "Medium", "High"))
 
-ggscatter(resultlong, x="FPR", y="TPR", color="methodTPR", facet.by="spread_v",
-          palette=get_palette("Spectral", k = 11)[c(2,10)], 
-          ylab="TPR [TP/TP+FN]", xlab="FPR [FP/FP+TN]", title = "Associations of invariant taxa with metadata",
-          legend.title="Method") + 
+precisioninv <- ggline(resultlong, x="depths", y="Precision", color="method", facet.by="spread_v",
+       numeric.x.axis = T, add = "mean_se", palette=get_palette("Spectral", k = 11)[c(2,10)], xlab="Sequencing reads", 
+       ylab="Precision [TP/TP+FP]", title = "Invariant taxa-metadata associations - Precision",
+       legend.title="Method") + 
+    xscale("log10", .format = TRUE) + 
     theme_bw() + 
     theme(panel.grid.major = element_line(colour = "gray97"), 
           panel.grid.minor = element_line(colour = "gray97")) + 
     theme(axis.title = element_text(face = "bold"), 
           plot.title = element_text(size = 14, 
                                     face = "bold"), legend.title = element_text(face = "bold"))
-ggsave("output/qmp_qmpnr/qmp_vs_qmpNR_invarianttaxa_metadata.pdf", device="pdf", 
+ggsave(precisioninv, file="output/qmp_qmpnr/qmp_vs_qmpNR_invtaxa_precision_metadata.pdf", device="pdf", 
        width=11, height=3.5)
+
+
+result <- read_tsv("output/qmp_qmpnr/qmp_vs_qmpnr_taxonmetadata_depths.tsv", col_names=T)
+resultlong <- result %>% 
+    dplyr::filter(valuesused=="invariant") %>% 
+    dplyr::filter(scenario_v!="Dysbiosis") %>% 
+    dplyr::select(-c(fdr_qmp, fdr_qmpnr, pr_qmp, pr_qmpnr, fp_qmp, fp_qmpnr, valuesused)) %>% 
+    gather(., key = "method", value="Recall", -c(spread_v, scenario_v, depths, matname))
+
+
+resultlong$method <- resultlong$method %>% gsub(., pattern="tp_qmpnr", replacement="QMP-NR")
+resultlong$method <- resultlong$method %>% gsub(., pattern="tp_qmp", replacement="QMP")
+resultlong$spread_v <- resultlong$spread_v %>% gsub(., pattern="low", replacement="Low")
+resultlong$spread_v <- resultlong$spread_v %>% gsub(., pattern="medium", replacement="Medium")
+resultlong$spread_v <- resultlong$spread_v %>% gsub(., pattern="high", replacement="High")
+resultlong$spread_v <- factor(resultlong$spread_v, levels=c("Low", "Medium", "High"))
+
+recallinv <- ggline(resultlong, x="depths", y="Recall", color="method", facet.by="spread_v",
+       numeric.x.axis = T, add = "mean_se", palette=get_palette("Spectral", k = 11)[c(2,10)], xlab="Sequencing reads", 
+       ylab="Recall [TP/TP+FN]", title = "Invariant taxa-metadata associations - Recall",
+       legend.title="Method") + 
+    xscale("log10", .format = TRUE) + 
+    theme_bw() + 
+    theme(panel.grid.major = element_line(colour = "gray97"), 
+          panel.grid.minor = element_line(colour = "gray97")) + 
+    theme(axis.title = element_text(face = "bold"), 
+          plot.title = element_text(size = 14, 
+                                    face = "bold"), legend.title = element_text(face = "bold"))
+ggsave(recallinv, file="output/qmp_qmpnr/qmp_vs_qmpNR_invtaxa_recall_metadata.pdf", device="pdf", 
+       width=11, height=3.5)
+
+
+pub_plot <- ggarrange(recallall, fprall, fprinv, ncol=1, nrow=3, labels="auto",legend="right")
+ggsave(pub_plot, file="output/qmp_qmpnr/qmp_vs_qmpNR_summary.pdf", device="pdf", 
+       width=8, height=9)
+
+
