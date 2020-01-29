@@ -146,6 +146,7 @@ for(file in list.files("data/seq_matrices", full.names = T)){
                 quote = FALSE, row.names = TRUE, col.names=T, sep="\t")
 }
 
+
 #### Generate metadata ####
 # First, define parameters for the metadata
 rho_meta_min <- 0.3       # minimum correlation for the metadata variables

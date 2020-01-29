@@ -127,16 +127,16 @@ for(file in list.files("data/tax_matrices", full.names = T)){
         
         tpqmp <- length(which(test_significant_qmp_all & reference_significant_all & test_sign_qmp_all==reference_sign_all))
         tpqmpnr <- length(which(test_significant_qmpnr_all & reference_significant_all & test_sign_qmpnr_all==reference_sign_all))
-        
+
         fpqmp <- length(which(test_significant_qmp_all & !reference_significant_all))+length(which(test_significant_qmp_all & reference_significant_all & test_sign_qmp_all!=reference_sign_all))
         fpqmpnr <- length(which(test_significant_qmpnr_all & !reference_significant_all))+length(which(test_significant_qmpnr_all & reference_significant_all & test_sign_qmpnr_all!=reference_sign_all))
-        
+
         tnqmp <- length(which(!test_significant_qmp_all & !reference_significant_all))
         tnqmpnr <- length(which(!test_significant_qmpnr_all & !reference_significant_all))
-        
+
         fnqmp <- length(which(!test_significant_qmp_all & reference_significant_all))
         fnqmpnr <- length(which(!test_significant_qmpnr_all & reference_significant_all))
-        
+
         fdr_qmp <- c(fdr_qmp, fpqmp/(fpqmp+tpqmp))
         fdr_qmpnr <- c(fdr_qmpnr, fpqmpnr/(fpqmpnr+tpqmpnr))
         spread_v <- c(spread_v, spread_name)
@@ -176,16 +176,16 @@ for(file in list.files("data/tax_matrices", full.names = T)){
             
             tpqmp <- length(which(test_significant_qmp & reference_significant & test_sign_qmp==reference_sign))
             tpqmpnr <- length(which(test_significant_qmpnr & reference_significant & test_sign_qmpnr==reference_sign))
-            
+
             fpqmp <- length(which(test_significant_qmp & !reference_significant))+length(which(test_significant_qmp & reference_significant & test_sign_qmp!=reference_sign))
             fpqmpnr <- length(which(test_significant_qmpnr & !reference_significant))+length(which(test_significant_qmpnr & reference_significant & test_sign_qmpnr!=reference_sign))
 
             tnqmp <- length(which(!test_significant_qmp & !reference_significant))
             tnqmpnr <- length(which(!test_significant_qmpnr & !reference_significant))
-            
+
             fnqmp <- length(which(!test_significant_qmp & reference_significant))
             fnqmpnr <- length(which(!test_significant_qmpnr & reference_significant))
-            
+
             
             fdr_qmp <- c(fdr_qmp, fpqmp/(fpqmp+tpqmp))
             fdr_qmpnr <- c(fdr_qmpnr, fpqmpnr/(fpqmpnr+tpqmpnr))
@@ -360,7 +360,7 @@ result <- read_tsv("output/qmp_qmpnr/qmp_vs_qmpnr_taxonmetadata_depths.tsv", col
 resultlong <- result %>% 
     dplyr::filter(valuesused=="invariant") %>% 
     dplyr::filter(scenario_v!="Dysbiosis") %>% 
-    dplyr::select(-c(fdr_qmp, fdr_qmpnr, pr_qmp, pr_qmpnr, fp_qmp, fp_qmpnr, valuesused)) %>% 
+    dplyr::select(-c(fdr_qmp, fdr_qmpnr, pr_qmp, pr_qmpnr, fp_qmp, fp_qmpnr,valuesused)) %>% 
     gather(., key = "method", value="Recall", -c(spread_v, scenario_v, depths, matname))
 
 
