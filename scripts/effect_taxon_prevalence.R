@@ -205,9 +205,6 @@ for(numberofzerostoaccept in c(0.05, 0.1, 0.2, 0.4, 0.5, 0.8)){ # loop over allo
         metadata_correlation_object[[2]] <- matrix(p.adjust(as.vector(as.matrix(metadata_correlation_object[[2]])), method='fdr'),ncol=ncol(metadata_correlation_object[[2]]))
         colnames(metadata_correlation_object[[2]]) <- colnames(metadata_correlation_object[[1]])
         rownames(metadata_correlation_object[[2]]) <- rownames(metadata_correlation_object[[1]])
-        # calculate correlations and pvalues
-        counts_correlation_object <- counts_metadata_correlation(tax_matrix, metadata_matrix) 
-        counts_correlation_object[[2]] <- p.adjust(counts_correlation_object[[2]], method="BH")
         # write output (taxon-taxon)
         outputname_correlation <- gsub(filename, pattern="taxonomy", replacement="taxontaxon_rho_REAL")
         outputname_pval <- gsub(filename, pattern="taxonomy", replacement="taxontaxon_pvalue_REAL")
@@ -225,15 +222,6 @@ for(numberofzerostoaccept in c(0.05, 0.1, 0.2, 0.4, 0.5, 0.8)){ # loop over allo
                     col.names=T, row.names=T, quote=F, sep="\t")
         write.table(metadata_correlation_object[[2]], 
                     paste0("data/correlations_taxonmetadata/reference/", outputname_pval), 
-                    col.names=T, row.names=T, quote=F, sep="\t")
-        # write output (counts-metadata)
-        outputname_correlation <- gsub(filename, pattern="taxonomy", replacement="countsmetadata_rho_REAL")
-        outputname_pval <- gsub(filename, pattern="taxonomy", replacement="countsmetadata_pvalue_REAL")
-        write.table(counts_correlation_object[[1]], 
-                    paste0("data/correlations_countsmetadata/reference/", outputname_correlation), 
-                    col.names=T, row.names=T, quote=F, sep="\t")
-        write.table(counts_correlation_object[[2]], 
-                    paste0("data/correlations_countsmetadata/reference/", outputname_pval), 
                     col.names=T, row.names=T, quote=F, sep="\t")
     }
     
@@ -260,9 +248,6 @@ for(numberofzerostoaccept in c(0.05, 0.1, 0.2, 0.4, 0.5, 0.8)){ # loop over allo
         metadata_correlation_object[[2]] <- matrix(p.adjust(as.vector(as.matrix(metadata_correlation_object[[2]])), method='fdr'),ncol=ncol(metadata_correlation_object[[2]]))
         colnames(metadata_correlation_object[[2]]) <- colnames(metadata_correlation_object[[1]])
         rownames(metadata_correlation_object[[2]]) <- rownames(metadata_correlation_object[[1]])
-        # calculate correlations and pvalues (counts-metadata)
-        counts_correlation_object <- counts_metadata_correlation(tax_matrix, metadata_matrix) 
-        counts_correlation_object[[2]] <- p.adjust(counts_correlation_object[[2]], method="BH")
         # write output (taxon-taxon)
         outputname_correlation <- gsub(filename, pattern="seqOut_taxonomy", replacement="taxontaxon_rho_CLR")
         outputname_pval <- gsub(filename, pattern="seqOut_taxonomy", replacement="taxontaxon_pvalue_CLR")
@@ -280,15 +265,6 @@ for(numberofzerostoaccept in c(0.05, 0.1, 0.2, 0.4, 0.5, 0.8)){ # loop over allo
                     col.names=T, row.names=T, quote=F, sep="\t")
         write.table(metadata_correlation_object[[2]], 
                     paste0("data/correlations_taxonmetadata/", outputname_pval), 
-                    col.names=T, row.names=T, quote=F, sep="\t")
-        # write output (counts-metadata)
-        outputname_correlation <- gsub(filename, pattern="seqOut_taxonomy", replacement="countsmetadata_rho_CLR")
-        outputname_pval <- gsub(filename, pattern="seqOut_taxonomy", replacement="countsmetadata_pvalue_CLR")
-        write.table(counts_correlation_object[[1]], 
-                    paste0("data/correlations_countsmetadata/", outputname_correlation), 
-                    col.names=T, row.names=T, quote=F, sep="\t")
-        write.table(counts_correlation_object[[2]], 
-                    paste0("data/correlations_countsmetadata/", outputname_pval), 
                     col.names=T, row.names=T, quote=F, sep="\t")
     }
     
@@ -314,9 +290,6 @@ for(numberofzerostoaccept in c(0.05, 0.1, 0.2, 0.4, 0.5, 0.8)){ # loop over allo
         metadata_correlation_object[[2]] <- matrix(p.adjust(as.vector(as.matrix(metadata_correlation_object[[2]])), method='fdr'),ncol=ncol(metadata_correlation_object[[2]]))
         colnames(metadata_correlation_object[[2]]) <- colnames(metadata_correlation_object[[1]])
         rownames(metadata_correlation_object[[2]]) <- rownames(metadata_correlation_object[[1]])
-        # calculate correlations and pvalues (counts-metadata)
-        counts_correlation_object <- counts_metadata_correlation(tax_matrix, metadata_matrix) 
-        counts_correlation_object[[2]] <- p.adjust(counts_correlation_object[[2]], method="BH")
         # write output (taxon-taxon)
         outputname_correlation <- gsub(filename, pattern="seqOut_taxonomy", replacement="taxontaxon_rho_GMPR")
         outputname_pval <- gsub(filename, pattern="seqOut_taxonomy", replacement="taxontaxon_pvalue_GMPR")
@@ -334,15 +307,6 @@ for(numberofzerostoaccept in c(0.05, 0.1, 0.2, 0.4, 0.5, 0.8)){ # loop over allo
                     col.names=T, row.names=T, quote=F, sep="\t")
         write.table(metadata_correlation_object[[2]], 
                     paste0("data/correlations_taxonmetadata/", outputname_pval), 
-                    col.names=T, row.names=T, quote=F, sep="\t")
-        # write output (counts-metadata)
-        outputname_correlation <- gsub(filename, pattern="seqOut_taxonomy", replacement="countsmetadata_rho_GMPR")
-        outputname_pval <- gsub(filename, pattern="seqOut_taxonomy", replacement="countsmetadata_pvalue_GMPR")
-        write.table(counts_correlation_object[[1]], 
-                    paste0("data/correlations_countsmetadata/", outputname_correlation), 
-                    col.names=T, row.names=T, quote=F, sep="\t")
-        write.table(counts_correlation_object[[2]], 
-                    paste0("data/correlations_countsmetadata/", outputname_pval), 
                     col.names=T, row.names=T, quote=F, sep="\t")
     }
     
@@ -372,9 +336,6 @@ for(numberofzerostoaccept in c(0.05, 0.1, 0.2, 0.4, 0.5, 0.8)){ # loop over allo
         metadata_correlation_object[[2]] <- matrix(p.adjust(as.vector(as.matrix(metadata_correlation_object[[2]])), method='fdr'),ncol=ncol(metadata_correlation_object[[2]]))
         colnames(metadata_correlation_object[[2]]) <- colnames(metadata_correlation_object[[1]])
         rownames(metadata_correlation_object[[2]]) <- rownames(metadata_correlation_object[[1]])
-        # calculate correlations and pvalues (counts-metadata)
-        counts_correlation_object <- counts_metadata_correlation(tax_matrix, metadata_matrix) 
-        counts_correlation_object[[2]] <- p.adjust(counts_correlation_object[[2]], method="BH")
         # write output (taxon-taxon)
         outputname_correlation <- gsub(filename, pattern="seqOut_taxonomy", replacement="taxontaxon_rho_CSS")
         outputname_pval <- gsub(filename, pattern="seqOut_taxonomy", replacement="taxontaxon_pvalue_CSS")
@@ -392,15 +353,6 @@ for(numberofzerostoaccept in c(0.05, 0.1, 0.2, 0.4, 0.5, 0.8)){ # loop over allo
                     col.names=T, row.names=T, quote=F, sep="\t")
         write.table(metadata_correlation_object[[2]], 
                     paste0("data/correlations_taxonmetadata/", outputname_pval), 
-                    col.names=T, row.names=T, quote=F, sep="\t")
-        # write output (counts-metadata)
-        outputname_correlation <- gsub(filename, pattern="seqOut_taxonomy", replacement="countsmetadata_rho_CSS")
-        outputname_pval <- gsub(filename, pattern="seqOut_taxonomy", replacement="countsmetadata_pvalue_CSS")
-        write.table(counts_correlation_object[[1]], 
-                    paste0("data/correlations_countsmetadata/", outputname_correlation), 
-                    col.names=T, row.names=T, quote=F, sep="\t")
-        write.table(counts_correlation_object[[2]], 
-                    paste0("data/correlations_countsmetadata/", outputname_pval), 
                     col.names=T, row.names=T, quote=F, sep="\t")
     }
     
@@ -428,9 +380,6 @@ for(numberofzerostoaccept in c(0.05, 0.1, 0.2, 0.4, 0.5, 0.8)){ # loop over allo
         metadata_correlation_object[[2]] <- matrix(p.adjust(as.vector(as.matrix(metadata_correlation_object[[2]])), method='fdr'),ncol=ncol(metadata_correlation_object[[2]]))
         colnames(metadata_correlation_object[[2]]) <- colnames(metadata_correlation_object[[1]])
         rownames(metadata_correlation_object[[2]]) <- rownames(metadata_correlation_object[[1]])
-        # calculate correlations and pvalues (counts-metadata)
-        counts_correlation_object <- counts_metadata_correlation(tax_matrix, metadata_matrix) 
-        counts_correlation_object[[2]] <- p.adjust(counts_correlation_object[[2]], method="BH")
         # write output (taxon-taxon)
         outputname_correlation <- gsub(filename, pattern="seqOut_taxonomy", replacement="taxontaxon_rho_TMM")
         outputname_pval <- gsub(filename, pattern="seqOut_taxonomy", replacement="taxontaxon_pvalue_TMM")
@@ -448,15 +397,6 @@ for(numberofzerostoaccept in c(0.05, 0.1, 0.2, 0.4, 0.5, 0.8)){ # loop over allo
                     col.names=T, row.names=T, quote=F, sep="\t")
         write.table(metadata_correlation_object[[2]], 
                     paste0("data/correlations_taxonmetadata/", outputname_pval), 
-                    col.names=T, row.names=T, quote=F, sep="\t")
-        # write output (counts-metadata)
-        outputname_correlation <- gsub(filename, pattern="seqOut_taxonomy", replacement="countsmetadata_rho_TMM")
-        outputname_pval <- gsub(filename, pattern="seqOut_taxonomy", replacement="countsmetadata_pvalue_TMM")
-        write.table(counts_correlation_object[[1]], 
-                    paste0("data/correlations_countsmetadata/", outputname_correlation), 
-                    col.names=T, row.names=T, quote=F, sep="\t")
-        write.table(counts_correlation_object[[2]], 
-                    paste0("data/correlations_countsmetadata/", outputname_pval), 
                     col.names=T, row.names=T, quote=F, sep="\t")
     }
     
@@ -484,9 +424,6 @@ for(numberofzerostoaccept in c(0.05, 0.1, 0.2, 0.4, 0.5, 0.8)){ # loop over allo
         metadata_correlation_object[[2]] <- matrix(p.adjust(as.vector(as.matrix(metadata_correlation_object[[2]])), method='fdr'),ncol=ncol(metadata_correlation_object[[2]]))
         colnames(metadata_correlation_object[[2]]) <- colnames(metadata_correlation_object[[1]])
         rownames(metadata_correlation_object[[2]]) <- rownames(metadata_correlation_object[[1]])
-        # calculate correlations and pvalues (counts-metadata)
-        counts_correlation_object <- counts_metadata_correlation(tax_matrix, metadata_matrix) 
-        counts_correlation_object[[2]] <- p.adjust(counts_correlation_object[[2]], method="BH")
         # write output (taxon-taxon)
         outputname_correlation <- gsub(filename, pattern="seqOut_taxonomy", replacement="taxontaxon_rho_UQ")
         outputname_pval <- gsub(filename, pattern="seqOut_taxonomy", replacement="taxontaxon_pvalue_UQ")
@@ -504,15 +441,6 @@ for(numberofzerostoaccept in c(0.05, 0.1, 0.2, 0.4, 0.5, 0.8)){ # loop over allo
                     col.names=T, row.names=T, quote=F, sep="\t")
         write.table(metadata_correlation_object[[2]], 
                     paste0("data/correlations_taxonmetadata/", outputname_pval), 
-                    col.names=T, row.names=T, quote=F, sep="\t")
-        # write output (counts-metadata)
-        outputname_correlation <- gsub(filename, pattern="seqOut_taxonomy", replacement="countsmetadata_rho_UQ")
-        outputname_pval <- gsub(filename, pattern="seqOut_taxonomy", replacement="countsmetadata_pvalue_UQ")
-        write.table(counts_correlation_object[[1]], 
-                    paste0("data/correlations_countsmetadata/", outputname_correlation), 
-                    col.names=T, row.names=T, quote=F, sep="\t")
-        write.table(counts_correlation_object[[2]], 
-                    paste0("data/correlations_countsmetadata/", outputname_pval), 
                     col.names=T, row.names=T, quote=F, sep="\t")
     }
     
@@ -540,9 +468,6 @@ for(numberofzerostoaccept in c(0.05, 0.1, 0.2, 0.4, 0.5, 0.8)){ # loop over allo
         metadata_correlation_object[[2]] <- matrix(p.adjust(as.vector(as.matrix(metadata_correlation_object[[2]])), method='fdr'),ncol=ncol(metadata_correlation_object[[2]]))
         colnames(metadata_correlation_object[[2]]) <- colnames(metadata_correlation_object[[1]])
         rownames(metadata_correlation_object[[2]]) <- rownames(metadata_correlation_object[[1]])
-        # calculate correlations and pvalues (counts-metadata)
-        counts_correlation_object <- counts_metadata_correlation(tax_matrix, metadata_matrix) 
-        counts_correlation_object[[2]] <- p.adjust(counts_correlation_object[[2]], method="BH")
         # write output (taxon-taxon)
         outputname_correlation <- gsub(filename, pattern="seqOut_taxonomy", replacement="taxontaxon_rho_RLE")
         outputname_pval <- gsub(filename, pattern="seqOut_taxonomy", replacement="taxontaxon_pvalue_RLE")
@@ -560,15 +485,6 @@ for(numberofzerostoaccept in c(0.05, 0.1, 0.2, 0.4, 0.5, 0.8)){ # loop over allo
                     col.names=T, row.names=T, quote=F, sep="\t")
         write.table(metadata_correlation_object[[2]], 
                     paste0("data/correlations_taxonmetadata/", outputname_pval), 
-                    col.names=T, row.names=T, quote=F, sep="\t")
-        # write output (counts-metadata)
-        outputname_correlation <- gsub(filename, pattern="seqOut_taxonomy", replacement="countsmetadata_rho_RLE")
-        outputname_pval <- gsub(filename, pattern="seqOut_taxonomy", replacement="countsmetadata_pvalue_RLE")
-        write.table(counts_correlation_object[[1]], 
-                    paste0("data/correlations_countsmetadata/", outputname_correlation), 
-                    col.names=T, row.names=T, quote=F, sep="\t")
-        write.table(counts_correlation_object[[2]], 
-                    paste0("data/correlations_countsmetadata/", outputname_pval), 
                     col.names=T, row.names=T, quote=F, sep="\t")
     }
     
@@ -595,9 +511,6 @@ for(numberofzerostoaccept in c(0.05, 0.1, 0.2, 0.4, 0.5, 0.8)){ # loop over allo
         metadata_correlation_object[[2]] <- matrix(p.adjust(as.vector(as.matrix(metadata_correlation_object[[2]])), method='fdr'),ncol=ncol(metadata_correlation_object[[2]]))
         colnames(metadata_correlation_object[[2]]) <- colnames(metadata_correlation_object[[1]])
         rownames(metadata_correlation_object[[2]]) <- rownames(metadata_correlation_object[[1]])
-        # calculate correlations and pvalues (counts-metadata)
-        counts_correlation_object <- counts_metadata_correlation(tax_matrix, metadata_matrix) 
-        counts_correlation_object[[2]] <- p.adjust(counts_correlation_object[[2]], method="BH")
         # write output (taxon-taxon)
         outputname_correlation <- gsub(filename, pattern="seqOut_taxonomy", replacement="taxontaxon_rho_AST")
         outputname_pval <- gsub(filename, pattern="seqOut_taxonomy", replacement="taxontaxon_pvalue_AST")
@@ -615,15 +528,6 @@ for(numberofzerostoaccept in c(0.05, 0.1, 0.2, 0.4, 0.5, 0.8)){ # loop over allo
                     col.names=T, row.names=T, quote=F, sep="\t")
         write.table(metadata_correlation_object[[2]], 
                     paste0("data/correlations_taxonmetadata/", outputname_pval), 
-                    col.names=T, row.names=T, quote=F, sep="\t")
-        # write output (counts-metadata)
-        outputname_correlation <- gsub(filename, pattern="seqOut_taxonomy", replacement="countsmetadata_rho_AST")
-        outputname_pval <- gsub(filename, pattern="seqOut_taxonomy", replacement="countsmetadata_pvalue_AST")
-        write.table(counts_correlation_object[[1]], 
-                    paste0("data/correlations_countsmetadata/", outputname_correlation), 
-                    col.names=T, row.names=T, quote=F, sep="\t")
-        write.table(counts_correlation_object[[2]], 
-                    paste0("data/correlations_countsmetadata/", outputname_pval), 
                     col.names=T, row.names=T, quote=F, sep="\t")
     }
     
@@ -649,9 +553,6 @@ for(numberofzerostoaccept in c(0.05, 0.1, 0.2, 0.4, 0.5, 0.8)){ # loop over allo
         metadata_correlation_object[[2]] <- matrix(p.adjust(as.vector(as.matrix(metadata_correlation_object[[2]])), method='fdr'),ncol=ncol(metadata_correlation_object[[2]]))
         colnames(metadata_correlation_object[[2]]) <- colnames(metadata_correlation_object[[1]])
         rownames(metadata_correlation_object[[2]]) <- rownames(metadata_correlation_object[[1]])
-        # calculate correlations and pvalues (counts-metadata)
-        counts_correlation_object <- counts_metadata_correlation(tax_matrix, metadata_matrix) 
-        counts_correlation_object[[2]] <- p.adjust(counts_correlation_object[[2]], method="BH")
         # write output (taxon-taxon)
         outputname_correlation <- gsub(filename, pattern="seqOut_taxonomy", replacement="taxontaxon_rho_VST")
         outputname_pval <- gsub(filename, pattern="seqOut_taxonomy", replacement="taxontaxon_pvalue_VST")
@@ -670,15 +571,6 @@ for(numberofzerostoaccept in c(0.05, 0.1, 0.2, 0.4, 0.5, 0.8)){ # loop over allo
         write.table(metadata_correlation_object[[2]], 
                     paste0("data/correlations_taxonmetadata/", outputname_pval), 
                     col.names=T, row.names=T, quote=F, sep="\t")
-        # write output (counts-metadata)
-        outputname_correlation <- gsub(filename, pattern="seqOut_taxonomy", replacement="countsmetadata_rho_VST")
-        outputname_pval <- gsub(filename, pattern="seqOut_taxonomy", replacement="countsmetadata_pvalue_VST")
-        write.table(counts_correlation_object[[1]], 
-                    paste0("data/correlations_countsmetadata/", outputname_correlation), 
-                    col.names=T, row.names=T, quote=F, sep="\t")
-        write.table(counts_correlation_object[[2]], 
-                    paste0("data/correlations_countsmetadata/", outputname_pval), 
-                    col.names=T, row.names=T, quote=F, sep="\t")    
     }
     
     
@@ -701,9 +593,6 @@ for(numberofzerostoaccept in c(0.05, 0.1, 0.2, 0.4, 0.5, 0.8)){ # loop over allo
         metadata_correlation_object[[2]] <- matrix(p.adjust(as.vector(as.matrix(metadata_correlation_object[[2]])), method='fdr'),ncol=ncol(metadata_correlation_object[[2]]))
         colnames(metadata_correlation_object[[2]]) <- colnames(metadata_correlation_object[[1]])
         rownames(metadata_correlation_object[[2]]) <- rownames(metadata_correlation_object[[1]])
-        # calculate correlations and pvalues (counts-metadata)
-        counts_correlation_object <- counts_metadata_correlation(tax_matrix, metadata_matrix)  
-        counts_correlation_object[[2]] <- p.adjust(counts_correlation_object[[2]], method="BH")
         # write output (taxon-taxon)
         outputname_correlation <- gsub(filename, pattern="RMP_taxonomy", replacement="taxontaxon_rho_RMP")
         outputname_pval <- gsub(filename, pattern="RMP_taxonomy", replacement="taxontaxon_pvalue_RMP")
@@ -721,15 +610,6 @@ for(numberofzerostoaccept in c(0.05, 0.1, 0.2, 0.4, 0.5, 0.8)){ # loop over allo
                     col.names=T, row.names=T, quote=F, sep="\t")
         write.table(metadata_correlation_object[[2]], 
                     paste0("data/correlations_taxonmetadata/", outputname_pval), 
-                    col.names=T, row.names=T, quote=F, sep="\t")
-        # write output (counts-metadata)
-        outputname_correlation <- gsub(filename, pattern="RMP_taxonomy", replacement="countsmetadata_rho_RMP")
-        outputname_pval <- gsub(filename, pattern="RMP_taxonomy", replacement="countsmetadata_pvalue_RMP")
-        write.table(counts_correlation_object[[1]], 
-                    paste0("data/correlations_countsmetadata/", outputname_correlation), 
-                    col.names=T, row.names=T, quote=F, sep="\t")
-        write.table(counts_correlation_object[[2]], 
-                    paste0("data/correlations_countsmetadata/", outputname_pval), 
                     col.names=T, row.names=T, quote=F, sep="\t")
     }
     
@@ -753,9 +633,6 @@ for(numberofzerostoaccept in c(0.05, 0.1, 0.2, 0.4, 0.5, 0.8)){ # loop over allo
         metadata_correlation_object[[2]] <- matrix(p.adjust(as.vector(as.matrix(metadata_correlation_object[[2]])), method='fdr'),ncol=ncol(metadata_correlation_object[[2]]))
         colnames(metadata_correlation_object[[2]]) <- colnames(metadata_correlation_object[[1]])
         rownames(metadata_correlation_object[[2]]) <- rownames(metadata_correlation_object[[1]])
-        # calculate correlations and pvalues (counts-metadata)
-        counts_correlation_object <- counts_metadata_correlation(tax_matrix, metadata_matrix) 
-        counts_correlation_object[[2]] <- p.adjust(counts_correlation_object[[2]], method="BH")
         # write output (taxon-taxon)
         outputname_correlation <- gsub(filename, pattern="QMP_taxonomy", replacement="taxontaxon_rho_QMP")
         outputname_pval <- gsub(filename, pattern="QMP_taxonomy", replacement="taxontaxon_pvalue_QMP")
@@ -773,15 +650,6 @@ for(numberofzerostoaccept in c(0.05, 0.1, 0.2, 0.4, 0.5, 0.8)){ # loop over allo
                     col.names=T, row.names=T, quote=F, sep="\t")
         write.table(metadata_correlation_object[[2]], 
                     paste0("data/correlations_taxonmetadata/", outputname_pval), 
-                    col.names=T, row.names=T, quote=F, sep="\t")
-        # write output (counts-metadata)
-        outputname_correlation <- gsub(filename, pattern="QMP_taxonomy", replacement="countsmetadata_rho_QMP")
-        outputname_pval <- gsub(filename, pattern="QMP_taxonomy", replacement="countsmetadata_pvalue_QMP")
-        write.table(counts_correlation_object[[1]], 
-                    paste0("data/correlations_countsmetadata/", outputname_correlation), 
-                    col.names=T, row.names=T, quote=F, sep="\t")
-        write.table(counts_correlation_object[[2]], 
-                    paste0("data/correlations_countsmetadata/", outputname_pval), 
                     col.names=T, row.names=T, quote=F, sep="\t")
     }
     
@@ -804,9 +672,6 @@ for(numberofzerostoaccept in c(0.05, 0.1, 0.2, 0.4, 0.5, 0.8)){ # loop over allo
         metadata_correlation_object[[2]] <- matrix(p.adjust(as.vector(as.matrix(metadata_correlation_object[[2]])), method='fdr'),ncol=ncol(metadata_correlation_object[[2]]))
         colnames(metadata_correlation_object[[2]]) <- colnames(metadata_correlation_object[[1]])
         rownames(metadata_correlation_object[[2]]) <- rownames(metadata_correlation_object[[1]])
-        # calculate correlations and pvalues (counts-metadata)
-        counts_correlation_object <- counts_metadata_correlation(tax_matrix, metadata_matrix) 
-        counts_correlation_object[[2]] <- p.adjust(counts_correlation_object[[2]], method="BH")
         # write output (taxon-taxon)
         outputname_correlation <- gsub(filename, pattern="QMP2_taxonomy", replacement="taxontaxon_rho_QMP-NR")
         outputname_pval <- gsub(filename, pattern="QMP2_taxonomy", replacement="taxontaxon_pvalue_QMP-NR")
@@ -824,15 +689,6 @@ for(numberofzerostoaccept in c(0.05, 0.1, 0.2, 0.4, 0.5, 0.8)){ # loop over allo
                     col.names=T, row.names=T, quote=F, sep="\t")
         write.table(metadata_correlation_object[[2]], 
                     paste0("data/correlations_taxonmetadata/", outputname_pval), 
-                    col.names=T, row.names=T, quote=F, sep="\t")
-        # write output (counts-metadata)
-        outputname_correlation <- gsub(filename, pattern="QMP2_taxonomy", replacement="countsmetadata_rho_QMP-NR")
-        outputname_pval <- gsub(filename, pattern="QMP2_taxonomy", replacement="countsmetadata_pvalue_QMP-NR")
-        write.table(counts_correlation_object[[1]], 
-                    paste0("data/correlations_countsmetadata/", outputname_correlation), 
-                    col.names=T, row.names=T, quote=F, sep="\t")
-        write.table(counts_correlation_object[[2]], 
-                    paste0("data/correlations_countsmetadata/", outputname_pval), 
                     col.names=T, row.names=T, quote=F, sep="\t")
     }
     
