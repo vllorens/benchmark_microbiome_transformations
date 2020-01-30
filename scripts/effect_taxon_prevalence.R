@@ -897,6 +897,7 @@ for(numberofzerostoaccept in c(0.05, 0.1, 0.2, 0.4, 0.5, 0.8)){ # loop over allo
         mutate(false_positive_percent=100*false_positive/(true_positive+true_negative+false_positive+false_negative)) %>% 
         mutate(true_negative_percent=100*true_negative/(true_positive+true_negative+false_positive+false_negative)) %>% 
         mutate(false_negative_percent=100*false_negative/(true_positive+true_negative+false_positive+false_negative)) %>% 
+        mutate(false_positive_rate=100*false_positive/(true_negative+false_positive)) %>% 
         dplyr::select(-c(true_positive,true_negative,false_positive,false_negative)) %>% 
         drop_na()
     
@@ -963,6 +964,7 @@ for(numberofzerostoaccept in c(0.05, 0.1, 0.2, 0.4, 0.5, 0.8)){ # loop over allo
         mutate(false_positive_percent=100*false_positive/(true_positive+true_negative+false_positive+false_negative)) %>% 
         mutate(true_negative_percent=100*true_negative/(true_positive+true_negative+false_positive+false_negative)) %>% 
         mutate(false_negative_percent=100*false_negative/(true_positive+true_negative+false_positive+false_negative)) %>% 
+        mutate(false_positive_rate=100*false_positive/(true_negative+false_positive)) %>% 
         dplyr::select(-c(true_positive,true_negative,false_positive,false_negative))
     
     write_tsv(results, paste0("output/taxon_prevalence/statistics_taxonmetadata_correlation_", numberofzerostoaccept, ".tsv"), col_names = T)
@@ -990,16 +992,19 @@ rr$scen <- factor(rr$scen, levels=c("Healthy", "Dysbiosis", "Blooming"))
 
 p1 <- ggline(rr %>% dplyr::filter(datatable=="all"), x = "num_samples", y = "Precision", 
              add = c("mean_sd"),
-             color = "method", palette = "Spectral", facet.by = "scen", xlab="Taxon prevalence threshold") + theme_bw()
-ggsave(p1, filename="output/taxon_prevalence/plot_zeros_taxontaxon_precision.pdf", device="pdf", width=11, height=5)
+             color = "method", palette = "Spectral", facet.by = "scen", 
+             xlab="Taxon prevalence threshold", ylab="Precision [TP/TP+FP]") + theme_bw()
+ggsave(p1, filename="output/taxon_prevalence/plot_zeros_taxontaxon_precision.pdf", device="pdf", width=11, height=3.5)
 p1 <- ggline(rr %>% dplyr::filter(datatable=="all"), x = "num_samples", y = "Recall", 
              add = c("mean_se"),
-             color = "method", palette = "Spectral", facet.by = "scen", xlab="Taxon prevalence threshold") + theme_bw()
-ggsave(p1, filename="output/taxon_prevalence/plot_zeros_taxontaxon_recall.pdf", device="pdf", width=11, height=5)
-p1 <- ggline(rr %>% dplyr::filter(datatable=="all"), x = "num_samples", y = "false_positive_percent", 
+             color = "method", palette = "Spectral", facet.by = "scen", 
+             xlab="Taxon prevalence threshold", ylab="Recall [TP/TP+FN]") + theme_bw()
+ggsave(p1, filename="output/taxon_prevalence/plot_zeros_taxontaxon_recall.pdf", device="pdf", width=11, height=3.5)
+p1 <- ggline(rr %>% dplyr::filter(datatable=="all"), x = "num_samples", y = "false_positive_rate", 
              add = c("mean_se"),
-             color = "method", palette = "Spectral", facet.by = "scen", xlab="Taxon prevalence threshold") + theme_bw()
-ggsave(p1, filename="output/taxon_prevalence/plot_zeros_taxontaxon_FPS.pdf", device="pdf", width=11, height=5)
+             color = "method", palette = "Spectral", facet.by = "scen", 
+             xlab="Taxon prevalence threshold", ylab="False positive rate [FP/FP+TN]") + theme_bw()
+ggsave(p1, filename="output/taxon_prevalence/plot_zeros_taxontaxon_FPR.pdf", device="pdf", width=11, height=3.5)
 
 
 
@@ -1025,15 +1030,18 @@ rr$scen <- factor(rr$scen, levels=c("Healthy", "Dysbiosis", "Blooming"))
 
 p1 <- ggline(rr %>% dplyr::filter(datatable=="all"), x = "num_samples", y = "Precision", 
              add = c("mean_se"),
-             color = "method", palette = "Spectral", facet.by = "scen", xlab="Taxon prevalence threshold") + theme_bw()
-ggsave(p1, filename="output/taxon_prevalence/plot_zeros_taxonmetadata_precision.pdf", device="pdf", width=11, height=5)
+             color = "method", palette = "Spectral", facet.by = "scen", 
+             xlab="Taxon prevalence threshold", ylab="Precision [TP/TP+FP]") + theme_bw()
+ggsave(p1, filename="output/taxon_prevalence/plot_zeros_taxonmetadata_precision.pdf", device="pdf", width=11, height=3.5)
 p1 <- ggline(rr %>% dplyr::filter(datatable=="all"), x = "num_samples", y = "Recall", 
              add = c("mean_se"),
-             color = "method", palette = "Spectral", facet.by = "scen", xlab="Taxon prevalence threshold") + theme_bw()
-ggsave(p1, filename="output/taxon_prevalence/plot_zeros_taxonmetadata_recall.pdf", device="pdf", width=11, height=5)
-p1 <- ggline(rr %>% dplyr::filter(datatable=="all"), x = "num_samples", y = "false_positive_percent", 
+             color = "method", palette = "Spectral", facet.by = "scen", 
+             xlab="Taxon prevalence threshold", ylab="Recall [TP/TP+FN]") + theme_bw()
+ggsave(p1, filename="output/taxon_prevalence/plot_zeros_taxonmetadata_recall.pdf", device="pdf", width=11, height=3.5)
+p1 <- ggline(rr %>% dplyr::filter(datatable=="all"), x = "num_samples", y = "false_positive_rate", 
              add = c("mean_se"),
-             color = "method", palette = "Spectral", facet.by = "scen", xlab="Taxon prevalence threshold") + theme_bw()
-ggsave(p1, filename="output/taxon_prevalence/plot_zeros_taxonmetadata_FPS.pdf", device="pdf", width=11, height=5)
+             color = "method", palette = "Spectral", facet.by = "scen", 
+             xlab="Taxon prevalence threshold", ylab="False positive rate [FP/FP+TN]") + theme_bw()
+ggsave(p1, filename="output/taxon_prevalence/plot_zeros_taxonmetadata_FPR.pdf", device="pdf", width=11, height=3.5)
 
     

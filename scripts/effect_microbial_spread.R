@@ -78,7 +78,7 @@ ggboxplot(results_all, x="spread", y="Precision", alpha=0.5,
                                                             axis.text.y = element_text(size = 12), 
                                                             plot.title = element_text(size = 16)) +labs(x = NULL)
 
-ggsave(filename = "output/microbial_spread/plot_taxontaxon_precision_spread.ps", device = "ps", width = 11, height=5)
+ggsave(filename = "output/microbial_spread/plot_taxontaxon_precision_spread.ps", device = "ps", width = 11, height=3.5)
 
 ggboxplot(results_all, x="spread", y="Recall", alpha=0.5,
           fill="spread", facet.by = "method", nrow=1,
@@ -97,7 +97,7 @@ ggboxplot(results_all, x="spread", y="Recall", alpha=0.5,
                                                             axis.text.y = element_text(size = 12), 
                                                             plot.title = element_text(size = 16)) +labs(x = NULL)
 
-ggsave(filename = "output/microbial_spread/plot_taxontaxon_recall_spread.ps", device = "ps", width = 11, height=5)
+ggsave(filename = "output/microbial_spread/plot_taxontaxon_recall_spread.ps", device = "ps", width = 11, height=3.5)
 
 ggboxplot(results_all, x="spread", y="false_positive_percent", alpha=0.5,
           fill="spread", facet.by = "method", nrow=1,
@@ -116,7 +116,7 @@ ggboxplot(results_all, x="spread", y="false_positive_percent", alpha=0.5,
                                                             axis.text.y = element_text(size = 12), 
                                                             plot.title = element_text(size = 16)) +labs(x = NULL)
 
-ggsave(filename = "output/microbial_spread/plot_taxontaxon_FP_spread.ps", device = "ps", width = 11, height=5)
+ggsave(filename = "output/microbial_spread/plot_taxontaxon_FP_spread.ps", device = "ps", width = 11, height=3.5)
 
 
 
@@ -158,7 +158,7 @@ ggboxplot(results_all, x="spread", y="Precision", alpha=0.5,
                                                             axis.text.y = element_text(size = 12), 
                                                             plot.title = element_text(size = 16)) +labs(x = NULL)
 
-ggsave(filename = "output/microbial_spread/plot_taxonmetadata_precision_spread.ps", device = "ps", width = 11, height=5)
+ggsave(filename = "output/microbial_spread/plot_taxonmetadata_precision_spread.ps", device = "ps", width = 11, height=3.5)
 
 ggboxplot(results_all, x="spread", y="Recall", alpha=0.5,
           fill="spread", facet.by = "method", nrow=1,
@@ -177,7 +177,7 @@ ggboxplot(results_all, x="spread", y="Recall", alpha=0.5,
                                                             axis.text.y = element_text(size = 12), 
                                                             plot.title = element_text(size = 16)) +labs(x = NULL)
 
-ggsave(filename = "output/microbial_spread/plot_taxonmetadata_recall_spread.ps", device = "ps", width = 11, height=5)
+ggsave(filename = "output/microbial_spread/plot_taxonmetadata_recall_spread.ps", device = "ps", width = 11, height=3.5)
 
 ggboxplot(results_all, x="spread", y="false_positive_percent", alpha=0.5,
           fill="spread", facet.by = "method", nrow=1,
@@ -196,5 +196,5 @@ ggboxplot(results_all, x="spread", y="false_positive_percent", alpha=0.5,
                                                             axis.text.y = element_text(size = 12), 
                                                             plot.title = element_text(size = 16)) +labs(x = NULL)
 
-ggsave(filename = "output/microbial_spread/plot_taxonmetadata_FP_spread.ps", device = "ps", width = 11, height=5)
+ggsave(filename = "output/microbial_spread/plot_taxonmetadata_FP_spread.ps", device = "ps", width = 11, height=3.5)
 

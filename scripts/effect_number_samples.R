@@ -743,6 +743,7 @@ for(numberofsamplestomake in c(20,50,100,200,500,1000)){
         mutate(false_positive_percent=100*false_positive/(true_positive+true_negative+false_positive+false_negative)) %>% 
         mutate(true_negative_percent=100*true_negative/(true_positive+true_negative+false_positive+false_negative)) %>% 
         mutate(false_negative_percent=100*false_negative/(true_positive+true_negative+false_positive+false_negative)) %>% 
+        mutate(false_positive_rate=100*false_positive/(true_negative+false_positive)) %>% 
         dplyr::select(-c(true_positive,true_negative,false_positive,false_negative)) %>% 
         drop_na()
     
@@ -812,6 +813,7 @@ for(numberofsamplestomake in c(20,50,100,200,500,1000)){
         mutate(false_positive_percent=100*false_positive/(true_positive+true_negative+false_positive+false_negative)) %>% 
         mutate(true_negative_percent=100*true_negative/(true_positive+true_negative+false_positive+false_negative)) %>% 
         mutate(false_negative_percent=100*false_negative/(true_positive+true_negative+false_positive+false_negative)) %>% 
+        mutate(false_positive_rate=100*false_positive/(true_negative+false_positive)) %>% 
         dplyr::select(-c(true_positive,true_negative,false_positive,false_negative))
     
     write_tsv(results, paste0("output/number_samples/statistics_taxonmetadata_correlation_", numberofsamplestomake, ".tsv"), col_names = T)
@@ -843,16 +845,19 @@ rr$scen <- factor(rr$scen, levels=c("Healthy", "Dysbiosis", "Blooming"))
 
 p1 <- ggline(rr %>% dplyr::filter(datatable=="all"), x = "num_samples", y = "Precision", 
              add = c("mean_se"),
-             color = "method", palette = "Spectral", facet.by = "scen", xlab="Number of samples") + theme_bw()
-ggsave(p1, filename="output/number_samples/plot_samplesize_taxontaxon_precision.pdf", device="pdf", width=11, height=5)
+             color = "method", palette = "Spectral", facet.by = "scen", 
+             xlab="Number of samples", ylab="Precision [TP/TP+FP]") + theme_bw()
+ggsave(p1, filename="output/number_samples/plot_samplesize_taxontaxon_precision.pdf", device="pdf", width=11, height=3.5)
 p1 <- ggline(rr %>% dplyr::filter(datatable=="all"), x = "num_samples", y = "Recall", 
              add = c("mean_se"),
-             color = "method", palette = "Spectral", facet.by = "scen", xlab="Number of samples") + theme_bw()
-ggsave(p1, filename="output/number_samples/plot_samplesize_taxontaxon_recall.pdf", device="pdf", width=11, height=5)
-p1 <- ggline(rr %>% dplyr::filter(datatable=="all"), x = "num_samples", y = "false_positive_percent", 
+             color = "method", palette = "Spectral", facet.by = "scen", 
+             xlab="Number of samples", ylab="Recall [TP/TP+FN]") + theme_bw()
+ggsave(p1, filename="output/number_samples/plot_samplesize_taxontaxon_recall.pdf", device="pdf", width=11, height=3.5)
+p1 <- ggline(rr %>% dplyr::filter(datatable=="all"), x = "num_samples", y = "false_positive_rate", 
              add = c("mean_se"),
-             color = "method", palette = "Spectral", facet.by = "scen", xlab="Number of samples") + theme_bw()
-ggsave(p1, filename="output/number_samples/plot_samplesize_taxontaxon_FPS.pdf", device="pdf", width=11, height=5)
+             color = "method", palette = "Spectral", facet.by = "scen", 
+             xlab="Number of samples", ylab="False positive rate [FP/FP+TN]") + theme_bw()
+ggsave(p1, filename="output/number_samples/plot_samplesize_taxontaxon_FPR.pdf", device="pdf", width=11, height=3.5)
 
 
 #### Assess performance of the methods across different sample numbers (taxon-metadata) ####
@@ -880,15 +885,18 @@ rr$scen <- factor(rr$scen, levels=c("Healthy", "Dysbiosis", "Blooming"))
 
 p1 <- ggline(rr %>% dplyr::filter(datatable=="all"), x = "num_samples", y = "Precision", 
              add = c("mean_se"),
-             color = "method", palette = "Spectral", facet.by = "scen", xlab="Number of samples") + theme_bw()
-ggsave(p1, filename="output/number_samples/plot_samplesize_taxonmetadata_precision.pdf", device="pdf", width=11, height=5)
+             color = "method", palette = "Spectral", facet.by = "scen", 
+             xlab="Number of samples", ylab="Precision [TP/TP+FP]") + theme_bw()
+ggsave(p1, filename="output/number_samples/plot_samplesize_taxonmetadata_precision.pdf", device="pdf", width=11, height=3.5)
 p1 <- ggline(rr %>% dplyr::filter(datatable=="all"), x = "num_samples", y = "Recall", 
              add = c("mean_se"),
-             color = "method", palette = "Spectral", facet.by = "scen", xlab="Number of samples") + theme_bw()
-ggsave(p1, filename="output/number_samples/plot_samplesize_taxonmetadata_recall.pdf", device="pdf", width=11, height=5)
-p1 <- ggline(rr %>% dplyr::filter(datatable=="all"), x = "num_samples", y = "false_positive_percent", 
+             color = "method", palette = "Spectral", facet.by = "scen", 
+             xlab="Number of samples", ylab="Recall [TP/TP+FN]") + theme_bw()
+ggsave(p1, filename="output/number_samples/plot_samplesize_taxonmetadata_recall.pdf", device="pdf", width=11, height=3.5)
+p1 <- ggline(rr %>% dplyr::filter(datatable=="all"), x = "num_samples", y = "false_positive_rate", 
              add = c("mean_se"),
-             color = "method", palette = "Spectral", facet.by = "scen", xlab="Number of samples") + theme_bw()
-ggsave(p1, filename="output/number_samples/plot_samplesize_taxonmetadata_FPS.pdf", device="pdf", width=11, height=5)
+             color = "method", palette = "Spectral", facet.by = "scen", 
+             xlab="Number of samples", ylab="False positive rate [FP/FP+TN]") + theme_bw()
+ggsave(p1, filename="output/number_samples/plot_samplesize_taxonmetadata_FPR.pdf", device="pdf", width=11, height=3.5)
 
 

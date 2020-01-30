@@ -896,6 +896,7 @@ for(seqdepth in c(9.21, 10.3, 10.81, 11.51, 12.2, 13.12)){ # different sequencin
         mutate(false_positive_percent=100*false_positive/(true_positive+true_negative+false_positive+false_negative)) %>% 
         mutate(true_negative_percent=100*true_negative/(true_positive+true_negative+false_positive+false_negative)) %>% 
         mutate(false_negative_percent=100*false_negative/(true_positive+true_negative+false_positive+false_negative)) %>% 
+        mutate(false_positive_rate=100*false_positive/(true_negative+false_positive)) %>% 
         dplyr::select(-c(true_positive,true_negative,false_positive,false_negative)) %>% 
         drop_na()
     
@@ -964,6 +965,7 @@ for(seqdepth in c(9.21, 10.3, 10.81, 11.51, 12.2, 13.12)){ # different sequencin
         mutate(false_positive_percent=100*false_positive/(true_positive+true_negative+false_positive+false_negative)) %>% 
         mutate(true_negative_percent=100*true_negative/(true_positive+true_negative+false_positive+false_negative)) %>% 
         mutate(false_negative_percent=100*false_negative/(true_positive+true_negative+false_positive+false_negative)) %>% 
+        mutate(false_positive_rate=100*false_positive/(true_negative+false_positive)) %>% 
         dplyr::select(-c(true_positive,true_negative,false_positive,false_negative))
     
     write_tsv(results, paste0("output/seq_depth/statistics_taxonmetadata_correlation_", seqdepth, ".tsv"), col_names = T)
@@ -995,18 +997,18 @@ rr$scen <- factor(rr$scen, levels=c("Healthy", "Dysbiosis", "Blooming"))
 p1 <- ggline(rr %>% dplyr::filter(datatable=="all"), x = "num_samples", y = "Precision", 
              add = c("mean_sd"),
              color = "method", palette = "Spectral", facet.by = "scen",
-             xlab="Sequencing depth") + theme_bw()
-ggsave(p1, filename="output/seq_depth/plot_depth_taxontaxon_precision.pdf", device="pdf", width=11, height=5)
+             xlab="Sequencing depth", ylab="Precision [TP/TP+FP]") + theme_bw()
+ggsave(p1, filename="output/seq_depth/plot_depth_taxontaxon_precision.pdf", device="pdf", width=11, height=3.5)
 p1 <- ggline(rr %>% dplyr::filter(datatable=="all"), x = "num_samples", y = "Recall", 
              add = c("mean_se"),
              color = "method", palette = "Spectral", facet.by = "scen",
-             xlab="Sequencing depth") + theme_bw()
-ggsave(p1, filename="output/seq_depth/plot_depth_taxontaxon_recall.pdf", device="pdf", width=11, height=5)
-p1 <- ggline(rr %>% dplyr::filter(datatable=="all"), x = "num_samples", y = "false_positive_percent", 
+             xlab="Sequencing depth", ylab="Recall [TP/TP+FN]") + theme_bw()
+ggsave(p1, filename="output/seq_depth/plot_depth_taxontaxon_recall.pdf", device="pdf", width=11, height=3.5)
+p1 <- ggline(rr %>% dplyr::filter(datatable=="all"), x = "num_samples", y = "false_positive_rate", 
              add = c("mean_se"),
              color = "method", palette = "Spectral", facet.by = "scen",
-             xlab="Sequencing depth") + theme_bw()
-ggsave(p1, filename="output/seq_depth/plot_depth_taxontaxon_FPS.pdf", device="pdf", width=11, height=5)
+             xlab="Sequencing depth", ylab="False positive rate [FP/FP+TN]") + theme_bw()
+ggsave(p1, filename="output/seq_depth/plot_depth_taxontaxon_FPR.pdf", device="pdf", width=11, height=3.5)
 
 
 #### Assess performance of the methods across different sample numbers (taxon-metadata) ####
@@ -1034,16 +1036,16 @@ rr$scen <- factor(rr$scen, levels=c("Healthy", "Dysbiosis", "Blooming"))
 p1 <- ggline(rr %>% dplyr::filter(datatable=="all"), x = "num_samples", y = "Precision", 
              add = c("mean_se"),
              color = "method", palette = "Spectral", facet.by = "scen",
-             xlab="Sequencing depth") + theme_bw()
-ggsave(p1, filename="output/seq_depth/plot_depth_taxonmetadata_precision.pdf", device="pdf", width=11, height=5)
+             xlab="Sequencing depth", ylab="Precision [TP/TP+FP]") + theme_bw()
+ggsave(p1, filename="output/seq_depth/plot_depth_taxonmetadata_precision.pdf", device="pdf", width=11, height=3.5)
 p1 <- ggline(rr %>% dplyr::filter(datatable=="all"), x = "num_samples", y = "Recall", 
              add = c("mean_se"),
              color = "method", palette = "Spectral", facet.by = "scen",
-             xlab="Sequencing depth") + theme_bw()
-ggsave(p1, filename="output/seq_depth/plot_depth_taxonmetadata_recall.pdf", device="pdf", width=11, height=5)
-p1 <- ggline(rr %>% dplyr::filter(datatable=="all"), x = "num_samples", y = "false_positive_percent", 
+             xlab="Sequencing depth", ylab="Recall [TP/TP+FN]") + theme_bw()
+ggsave(p1, filename="output/seq_depth/plot_depth_taxonmetadata_recall.pdf", device="pdf", width=11, height=3.5)
+p1 <- ggline(rr %>% dplyr::filter(datatable=="all"), x = "num_samples", y = "false_positive_rate", 
              add = c("mean_se"),
              color = "method", palette = "Spectral", facet.by = "scen", 
-             xlab="Sequencing depth") + theme_bw()
-ggsave(p1, filename="output/seq_depth/plot_depth_taxonmetadata_FPS.pdf", device="pdf", width=11, height=5)
+             xlab="Sequencing depth", ylab="False positive rate [FP/FP+TN]") + theme_bw()
+ggsave(p1, filename="output/seq_depth/plot_depth_taxonmetadata_FPR.pdf", device="pdf", width=11, height=3.5)
 
