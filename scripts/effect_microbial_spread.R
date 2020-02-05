@@ -60,11 +60,24 @@ resultsinfo$method <- factor(resultsinfo$method, levels=c("AST", "CLR", "RMP", "
 
 resultsinfo$spread <- factor(resultsinfo$spread, levels=c("low", "medium", "high"))
 results_all <- resultsinfo %>% dplyr::filter(datatable=="all")
+method_type <- tibble(method=c("RMP", "AST", "CLR", "CSS", "GMPR",
+                               "UQ", "RLE", "TMM", "VST", "QMP", "QMP-NR"),
+                      method_type=c("Traditional transformations", 
+                                    rep("Compositional transformations", times=8),
+                                    rep("Quantitative transformations", times=2)))
 
+results_all <- results_all %>% 
+    left_join(method_type, by="method")
+results_all$method_type <- factor(results_all$method_type, 
+                              levels=c("Sequencing", "Traditional transformations", 
+                                       "Compositional transformations",
+                                       "Quantitative transformations"))
+results_all$method <- factor(results_all$method, levels=c("RMP", "AST", "CLR", "CSS", "GMPR",
+                                                  "UQ", "RLE", "TMM", "VST", "QMP", "QMP-NR"))
 ggboxplot(results_all, x="spread", y="Precision", alpha=0.5,
-          fill="spread", ylim=c(25,110), facet.by = "method", nrow=1,
-          ylab="Precision [TP/TP+FP]",
-          palette="Spectral",
+          fill="spread", facet.by = "method", nrow=1,
+          ylab="Precision [TP/TP+FP]",ylim=c(0,130),
+          palette=get_palette("Spectral", k = 11)[c(2,4,10)],
           main="Taxon-taxon correlations | Effect of microbial load spreads") + 
     geom_signif(comparisons=list(c("low", "medium"),
                                  c("medium", "high"),
@@ -78,12 +91,12 @@ ggboxplot(results_all, x="spread", y="Precision", alpha=0.5,
                                                             axis.text.y = element_text(size = 12), 
                                                             plot.title = element_text(size = 16)) +labs(x = NULL)
 
-ggsave(filename = "output/microbial_spread/plot_taxontaxon_precision_spread.ps", device = "ps", width = 11, height=3.5)
+ggsave(filename = "output/microbial_spread/plot_taxontaxon_precision_spread.ps", device = "ps", width = 11, height=4)
 
 ggboxplot(results_all, x="spread", y="Recall", alpha=0.5,
           fill="spread", facet.by = "method", nrow=1,
-          ylab="Recall [TP/TP+FN]",
-          palette="Spectral",
+          ylab="Recall [TP/TP+FN]",ylim=c(0,130),
+          palette=get_palette("Spectral", k = 11)[c(2,4,10)],
           main="Taxon-taxon correlations | Effect of microbial load spreads") + 
     geom_signif(comparisons=list(c("low", "medium"),
                                  c("medium", "high"),
@@ -97,12 +110,12 @@ ggboxplot(results_all, x="spread", y="Recall", alpha=0.5,
                                                             axis.text.y = element_text(size = 12), 
                                                             plot.title = element_text(size = 16)) +labs(x = NULL)
 
-ggsave(filename = "output/microbial_spread/plot_taxontaxon_recall_spread.ps", device = "ps", width = 11, height=3.5)
+ggsave(filename = "output/microbial_spread/plot_taxontaxon_recall_spread.ps", device = "ps", width = 11, height=4)
 
-ggboxplot(results_all, x="spread", y="false_positive_percent", alpha=0.5,
+ggboxplot(results_all, x="spread", y="false_positive_rate", alpha=0.5,
           fill="spread", facet.by = "method", nrow=1,
-          ylab="% False positives",
-          palette="Spectral",
+          ylab="False positive rate [FP/FP+TN]",ylim=c(0,130),
+          palette=get_palette("Spectral", k = 11)[c(2,4,10)],
           main="Taxon-taxon correlations | Effect of microbial load spreads") + 
     geom_signif(comparisons=list(c("low", "medium"),
                                  c("medium", "high"),
@@ -116,7 +129,7 @@ ggboxplot(results_all, x="spread", y="false_positive_percent", alpha=0.5,
                                                             axis.text.y = element_text(size = 12), 
                                                             plot.title = element_text(size = 16)) +labs(x = NULL)
 
-ggsave(filename = "output/microbial_spread/plot_taxontaxon_FP_spread.ps", device = "ps", width = 11, height=3.5)
+ggsave(filename = "output/microbial_spread/plot_taxontaxon_FPR_spread.ps", device = "ps", width = 11, height=4)
 
 
 
@@ -140,11 +153,12 @@ results_all <- resultsinfo %>% dplyr::filter(datatable=="all")
 results_pos <- resultsinfo %>% dplyr::filter(datatable=="pos")
 results_neg <- resultsinfo %>% dplyr::filter(datatable=="neg")
 results_not <- resultsinfo %>% dplyr::filter(datatable=="not")
-
+results_all$method <- factor(results_all$method, levels=c("RMP", "AST", "CLR", "CSS", "GMPR",
+                                                          "UQ", "RLE", "TMM", "VST", "QMP", "QMP-NR"))
 ggboxplot(results_all, x="spread", y="Precision", alpha=0.5,
           fill="spread", facet.by = "method", nrow=1,
-          ylab="Precision [TP/TP+FP]",
-          palette="Spectral",
+          ylab="Precision [TP/TP+FP]", ylim=c(0,130),
+          palette=get_palette("Spectral", k = 11)[c(2,4,10)],
           main="Taxon-metadata correlations | Effect of microbial load spreads") + 
     geom_signif(comparisons=list(c("low", "medium"),
                                  c("medium", "high"),
@@ -158,12 +172,12 @@ ggboxplot(results_all, x="spread", y="Precision", alpha=0.5,
                                                             axis.text.y = element_text(size = 12), 
                                                             plot.title = element_text(size = 16)) +labs(x = NULL)
 
-ggsave(filename = "output/microbial_spread/plot_taxonmetadata_precision_spread.ps", device = "ps", width = 11, height=3.5)
+ggsave(filename = "output/microbial_spread/plot_taxonmetadata_precision_spread.ps", device = "ps", width = 11, height=4)
 
 ggboxplot(results_all, x="spread", y="Recall", alpha=0.5,
           fill="spread", facet.by = "method", nrow=1,
-          ylab="Recall [TP/TP+FN]",
-          palette="Spectral",
+          ylab="Recall [TP/TP+FN]",ylim=c(0,130),
+          palette=get_palette("Spectral", k = 11)[c(2,4,10)],
           main="Taxon-metadata correlations | Effect of microbial load spreads") + 
     geom_signif(comparisons=list(c("low", "medium"),
                                  c("medium", "high"),
@@ -177,12 +191,12 @@ ggboxplot(results_all, x="spread", y="Recall", alpha=0.5,
                                                             axis.text.y = element_text(size = 12), 
                                                             plot.title = element_text(size = 16)) +labs(x = NULL)
 
-ggsave(filename = "output/microbial_spread/plot_taxonmetadata_recall_spread.ps", device = "ps", width = 11, height=3.5)
+ggsave(filename = "output/microbial_spread/plot_taxonmetadata_recall_spread.ps", device = "ps", width = 11, height=4)
 
-ggboxplot(results_all, x="spread", y="false_positive_percent", alpha=0.5,
+ggboxplot(results_all, x="spread", y="false_positive_rate", alpha=0.5,
           fill="spread", facet.by = "method", nrow=1,
-          ylab="% False positives",
-          palette="Spectral",
+          ylab="False positive rate [FP/FP+TN]",ylim=c(0,13),
+          palette=get_palette("Spectral", k = 11)[c(2,4,10)],
           main="Taxon-metadata correlations | Effect of microbial load spreads") + 
     geom_signif(comparisons=list(c("low", "medium"),
                                  c("medium", "high"),
@@ -196,5 +210,5 @@ ggboxplot(results_all, x="spread", y="false_positive_percent", alpha=0.5,
                                                             axis.text.y = element_text(size = 12), 
                                                             plot.title = element_text(size = 16)) +labs(x = NULL)
 
-ggsave(filename = "output/microbial_spread/plot_taxonmetadata_FP_spread.ps", device = "ps", width = 11, height=3.5)
+ggsave(filename = "output/microbial_spread/plot_taxonmetadata_FPR_spread.ps", device = "ps", width = 11, height=4)
 
