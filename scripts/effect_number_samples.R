@@ -13,7 +13,6 @@ suppressPackageStartupMessages(library(DESeq2))
 suppressPackageStartupMessages(library(ggsignif))
 suppressPackageStartupMessages(library(metagenomeSeq))
 suppressPackageStartupMessages(library(edgeR))
-suppressPackageStartupMessages(library(dabestr))
 suppressPackageStartupMessages(library(gdata))
 
 # load functions

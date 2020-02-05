@@ -13,7 +13,6 @@ suppressPackageStartupMessages(library(DESeq2))
 suppressPackageStartupMessages(library(ggsignif))
 suppressPackageStartupMessages(library(metagenomeSeq))
 suppressPackageStartupMessages(library(edgeR))
-suppressPackageStartupMessages(library(dabestr))
 suppressPackageStartupMessages(library(gdata))
 
 # load functions
@@ -34,9 +33,9 @@ system("rm -rf output/seq_depth/*")
 
 
 #### Loop to test effect of sequencing depth ####
-set.seed(18102019)
+set.seed(20102019)
 
-for(seqdepth in c(9.21, 10.3, 10.81, 11.51, 12.2, 13.12)){ # different sequencing depths (in log scale)
+for(seqdepth in c(9.9, 10.3, 10.81, 11.51, 12.2, 13.12)){ # different sequencing depths (in log scale)
 
     # create matrices (if not there)
     system("mkdir -p data/tax_matrices")
@@ -178,11 +177,7 @@ for(seqdepth in c(9.21, 10.3, 10.81, 11.51, 12.2, 13.12)){ # different sequencin
                     row.names=paste0("sample_", 1:nrow(metaD)))
     }
     
-    
-    system(command = "mkdir -p data/correlations_taxontaxon/reference")
-    system(command = "mkdir -p data/correlations_taxonmetadata/reference")
-    system(command = "mkdir -p data/correlations_countsmetadata/reference")
-    
+
     # REAL
     for(file in list.files("data/tax_matrices", full.names = T)){
         # read file and select only those taxa to keep
@@ -829,13 +824,13 @@ for(seqdepth in c(9.21, 10.3, 10.81, 11.51, 12.2, 13.12)){ # different sequencin
 
 
 #### Assess performance of the methods across different sample numbers (taxon-taxon) ####
-r05 <- read_tsv("output/seq_depth/statistics_taxontaxon_correlation_9.21.tsv")
+r05 <- read_tsv("output/seq_depth/statistics_taxontaxon_correlation_9.9.tsv")
 r10 <- read_tsv("output/seq_depth/statistics_taxontaxon_correlation_10.3.tsv")
 r20 <- read_tsv("output/seq_depth/statistics_taxontaxon_correlation_10.81.tsv")
 r50 <- read_tsv("output/seq_depth/statistics_taxontaxon_correlation_11.51.tsv")
 r100 <- read_tsv("output/seq_depth/statistics_taxontaxon_correlation_12.2.tsv")
 r500 <- read_tsv("output/seq_depth/statistics_taxontaxon_correlation_13.12.tsv")
-r05 <- r05 %>% mutate(num_samples="10000") #transform from log to normal scale and round
+r05 <- r05 %>% mutate(num_samples="20000") #transform from log to normal scale and round
 r10 <- r10 %>% mutate(num_samples="30000")
 r20 <- r20 %>% mutate(num_samples="50000")
 r50 <- r50 %>% mutate(num_samples="100000")
@@ -845,7 +840,7 @@ rr <- bind_rows(r05,r10,r20,r50,r100,r500)
 rr$method <- factor(rr$method, levels=c("AST", "CLR", "RMP", "CSS", "GMPR",
                                         "RLE", "TMM", "UQ", "VST",
                                         "QMP", "QMP-NR"))
-rr$num_samples <- factor(rr$num_samples, levels=c("10000", "30000", "50000", "100000", "200000", 
+rr$num_samples <- factor(rr$num_samples, levels=c("20000", "30000", "50000", "100000", "200000", 
                                                   "500000"))
 rr$spread <- factor(rr$spread, levels=c("low", "high"))
 rr$scen <- factor(rr$scen, levels=c("Healthy", "Dysbiosis", "Blooming"))
@@ -868,13 +863,13 @@ ggsave(p1, filename="output/seq_depth/plot_depth_taxontaxon_FPR.pdf", device="pd
 
 
 #### Assess performance of the methods across different sample numbers (taxon-metadata) ####
-r05 <- read_tsv("output/seq_depth/statistics_taxonmetadata_correlation_9.21.tsv")
+r05 <- read_tsv("output/seq_depth/statistics_taxonmetadata_correlation_9.9.tsv")
 r10 <- read_tsv("output/seq_depth/statistics_taxonmetadata_correlation_10.3.tsv")
 r20 <- read_tsv("output/seq_depth/statistics_taxonmetadata_correlation_10.81.tsv")
 r50 <- read_tsv("output/seq_depth/statistics_taxonmetadata_correlation_11.51.tsv")
 r100 <- read_tsv("output/seq_depth/statistics_taxonmetadata_correlation_12.2.tsv")
 r500 <- read_tsv("output/seq_depth/statistics_taxonmetadata_correlation_13.12.tsv")
-r05 <- r05 %>% mutate(num_samples="10000") #transform from log to normal scale and round
+r05 <- r05 %>% mutate(num_samples="20000") #transform from log to normal scale and round
 r10 <- r10 %>% mutate(num_samples="30000")
 r20 <- r20 %>% mutate(num_samples="50000")
 r50 <- r50 %>% mutate(num_samples="100000")
@@ -884,7 +879,7 @@ rr <- bind_rows(r05,r10,r20,r50,r100,r500)
 rr$method <- factor(rr$method, levels=c("AST", "CLR", "RMP", "CSS", "GMPR",
                                         "RLE", "TMM", "UQ", "VST",
                                         "QMP", "QMP-NR"))
-rr$num_samples <- factor(rr$num_samples, levels=c("10000", "30000", "50000", "100000", "200000", 
+rr$num_samples <- factor(rr$num_samples, levels=c("20000", "30000", "50000", "100000", "200000", 
                                                   "500000"))
 rr$spread <- factor(rr$spread, levels=c("low", "high"))
 rr$scen <- factor(rr$scen, levels=c("Healthy", "Dysbiosis", "Blooming"))

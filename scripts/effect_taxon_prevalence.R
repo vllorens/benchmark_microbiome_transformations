@@ -13,7 +13,6 @@ suppressPackageStartupMessages(library(DESeq2))
 suppressPackageStartupMessages(library(ggsignif))
 suppressPackageStartupMessages(library(metagenomeSeq))
 suppressPackageStartupMessages(library(edgeR))
-suppressPackageStartupMessages(library(dabestr))
 suppressPackageStartupMessages(library(gdata))
 
 # load functions
@@ -181,12 +180,7 @@ for(numberofzerostoaccept in c(0.05, 0.1, 0.2, 0.4, 0.5, 0.8)){ # loop over allo
                     col.names=paste0("variable_", 1:ncol(metaD)), 
                     row.names=paste0("sample_", 1:nrow(metaD)))
     }
-    
-    
-    system(command = "mkdir -p data/correlations_taxontaxon/reference")
-    system(command = "mkdir -p data/correlations_taxonmetadata/reference")
-    system(command = "mkdir -p data/correlations_countsmetadata/reference")
-    
+
     # REAL
     for(file in list.files("data/tax_matrices", full.names = T)){
         # read file and select only those taxa to keep
