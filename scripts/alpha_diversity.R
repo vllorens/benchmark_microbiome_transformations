@@ -349,7 +349,7 @@ print(ggscatter(richness_counts_all %>% dplyr::filter(Diversity_index=="Observed
           plot.title = element_text(size = 14, 
                                     face = "bold"), 
           legend.title = element_text(face = "bold"))
-ggsave("output/alpha_div/alphadiv_observed.ps", device = "ps", width=11, height=5)
+ggsave("output/alpha_div/alphadiv_observed.pdf", device = "pdf", width=11, height=5)
 print(ggscatter(richness_counts_all %>% dplyr::filter(Diversity_index=="Chao1"), 
                 x="counts", y="Value", group="matrix", facet.by=c("matrix"), nrow=3,
                 fill="method", alpha=0.5, shape=21, color="black",
@@ -364,7 +364,7 @@ print(ggscatter(richness_counts_all %>% dplyr::filter(Diversity_index=="Chao1"),
           plot.title = element_text(size = 14, 
                                     face = "bold"), 
           legend.title = element_text(face = "bold"))
-ggsave("output/alpha_div/alphadiv_chao1.ps", device = "ps", width=11, height=5)
+ggsave("output/alpha_div/alphadiv_chao1.pdf", device = "pdf", width=11, height=5)
 print(ggscatter(richness_counts_all %>% dplyr::filter(Diversity_index=="Simpson"), 
                 x="counts", y="Value", group="matrix", facet.by=c("matrix"), nrow=3,
                 fill="method", alpha=0.5, shape=21, color="black",
@@ -379,7 +379,7 @@ print(ggscatter(richness_counts_all %>% dplyr::filter(Diversity_index=="Simpson"
           plot.title = element_text(size = 14, 
                                     face = "bold"), 
           legend.title = element_text(face = "bold"))
-ggsave("output/alpha_div/alphadiv_Simpson.ps", device = "ps", width=11, height=5)
+ggsave("output/alpha_div/alphadiv_Simpson.pdf", device = "pdf", width=11, height=5)
 print(ggscatter(richness_counts_all %>% dplyr::filter(Diversity_index=="Shannon"), 
                 x="counts", y="Value", group="matrix", facet.by=c("matrix"), nrow=3,
                 fill="method", alpha=0.5, shape=21, color="black",
@@ -394,4 +394,4 @@ print(ggscatter(richness_counts_all %>% dplyr::filter(Diversity_index=="Shannon"
           plot.title = element_text(size = 14, 
                                     face = "bold"), 
           legend.title = element_text(face = "bold"))
-ggsave("output/alpha_div/alphadiv_Shannon.ps", device = "ps", width=11, height=5)
+ggsave("output/alpha_div/alphadiv_Shannon.pdf", device = "pdf", width=11, height=5)
