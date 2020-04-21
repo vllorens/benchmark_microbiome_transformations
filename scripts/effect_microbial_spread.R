@@ -56,24 +56,24 @@ resultsinfo <- resultsinfo %>%
 # plot
 resultsinfo$method <- factor(resultsinfo$method, levels=c("AST", "CLR", "RMP", "CSS","GMPR",
                                                           "RLE", "TMM", "UQ", "VST",
-                                                          "QMP", "QMP-NR"))
+                                                          "QMP", "ACS"))
 
 resultsinfo$spread <- factor(resultsinfo$spread, levels=c("low", "medium", "high"))
 results_all <- resultsinfo %>% dplyr::filter(datatable=="all")
 method_type <- tibble(method=c("RMP", "AST", "CLR", "CSS", "GMPR",
-                               "UQ", "RLE", "TMM", "VST", "QMP", "QMP-NR"),
+                               "UQ", "RLE", "TMM", "VST", "QMP", "ACS"),
                       method_type=c("Traditional transformations", 
                                     rep("Compositional transformations", times=8),
-                                    rep("Quantitative transformations", times=2)))
+                                    rep("Transformations incorporating microbial loads", times=2)))
 
 results_all <- results_all %>% 
     left_join(method_type, by="method")
 results_all$method_type <- factor(results_all$method_type, 
                               levels=c("Sequencing", "Traditional transformations", 
                                        "Compositional transformations",
-                                       "Quantitative transformations"))
+                                       "Transformations incorporating microbial loads"))
 results_all$method <- factor(results_all$method, levels=c("RMP", "AST", "CLR", "CSS", "GMPR",
-                                                  "UQ", "RLE", "TMM", "VST", "QMP", "QMP-NR"))
+                                                  "UQ", "RLE", "TMM", "VST", "QMP", "ACS"))
 ggboxplot(results_all, x="spread", y="Precision", alpha=0.5,
           fill="spread", facet.by = "method", nrow=1,
           ylab="Precision [TP/TP+FP]",ylim=c(0,130),
@@ -146,7 +146,7 @@ resultsinfo <- resultsinfo %>%
 # plot
 resultsinfo$method <- factor(resultsinfo$method, levels=c("AST", "CLR", "RMP", "CSS","GMPR",
                                                           "RLE", "TMM", "UQ", "VST",
-                                                          "QMP", "QMP-NR"))
+                                                          "QMP", "ACS"))
 
 resultsinfo$spread <- factor(resultsinfo$spread, levels=c("low", "medium", "high"))
 results_all <- resultsinfo %>% dplyr::filter(datatable=="all")
@@ -154,7 +154,7 @@ results_pos <- resultsinfo %>% dplyr::filter(datatable=="pos")
 results_neg <- resultsinfo %>% dplyr::filter(datatable=="neg")
 results_not <- resultsinfo %>% dplyr::filter(datatable=="not")
 results_all$method <- factor(results_all$method, levels=c("RMP", "AST", "CLR", "CSS", "GMPR",
-                                                          "UQ", "RLE", "TMM", "VST", "QMP", "QMP-NR"))
+                                                          "UQ", "RLE", "TMM", "VST", "QMP", "ACS"))
 ggboxplot(results_all, x="spread", y="Precision", alpha=0.5,
           fill="spread", facet.by = "method", nrow=1,
           ylab="Precision [TP/TP+FP]", ylim=c(0,130),

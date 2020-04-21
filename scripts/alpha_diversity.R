@@ -2,7 +2,7 @@
 # Mon Dec  2 14:47:38 2019 ------------------------------
 
 # In this script, we calculate different alpha diversity metrics on the original matrices, 
-# as well as on the matrices transformed by sequencing, RMP, QMP and QMP-NR
+# as well as on the matrices transformed by sequencing, RMP, QMP and ACS
 
 #### Configure the environment ####
 
@@ -222,11 +222,11 @@ for(file in list.files("data/tax_matrices", full.names = T)){
         mutate(scenario=scenario_name) %>% 
         mutate(method="QMP") 
     richness_counts_all <- bind_rows(richness_counts_all, richness_counts_table)
-    # read QMP-NR file
-    qmp_matrix <- read.table(paste0("data/qmp2_matrices/QMP2_", filename), 
+    # read ACS file
+    acs_matrix <- read.table(paste0("data/acs_matrices/ACS_", filename), 
                              header=T, stringsAsFactors=F, sep="\t") %>% 
         as.matrix() %>% round()
-    abundances <- otu_table(qmp_matrix, taxa_are_rows = T)
+    abundances <- otu_table(acs_matrix, taxa_are_rows = T)
     richness_counts_table <- estimate_richness(abundances, measures=c("Observed", "Chao1", "Simpson",  "Shannon")) %>% 
         as_tibble() %>% 
         mutate(samples=colnames(abundances)) %>% 
@@ -235,7 +235,7 @@ for(file in list.files("data/tax_matrices", full.names = T)){
         mutate(matrix=matrix_name) %>% 
         mutate(spread=spread_name) %>% 
         mutate(scenario=scenario_name) %>% 
-        mutate(method="QMP-NR") 
+        mutate(method="ACS") 
     richness_counts_all <- bind_rows(richness_counts_all, richness_counts_table)
 }
 
@@ -270,27 +270,27 @@ for(mat in unique(richness_counts_all_2$matrix)){
 }
 
 method_type <- tibble(method=c("Seq", "RMP", "CSS", "GMPR",
-                               "UQ", "RLE", "TMM","QMP", "QMP-NR"),
+                               "UQ", "RLE", "TMM","QMP", "ACS"),
                       method_type=c("Sequencing", "Traditional transformations", 
                                     rep("Compositional transformations", times=5),
-                                    rep("Quantitative transformations", times=2)))
+                                    rep("Transformations incorporating microbial loads", times=2)))
 fit_summary <- fit_summary %>% 
     left_join(method_type, by="method")
 
 fit_summary$method <- factor(fit_summary$method, 
                                      levels=c("Seq", "RMP", "CSS", "GMPR",
-                                              "UQ", "RLE", "TMM", "QMP", "QMP-NR"))
+                                              "UQ", "RLE", "TMM", "QMP", "ACS"))
 fit_summary$method_type <- factor(fit_summary$method_type, 
                              levels=c("Sequencing", "Traditional transformations", 
                                       "Compositional transformations",
-                                      "Quantitative transformations"))
+                                      "Transformations incorporating microbial loads"))
 fit_summary$scenario <- factor(fit_summary$scenario,
                                        levels=c("Healthy", "Blooming", "Dysbiosis"))
 fit_summary$Diversity_index <- factor(fit_summary$Diversity_index, 
                                               levels=c("Observed", "Chao1", "Simpson", "Shannon"))
 
 
-fig1b <- ggerrorplot(fit_summary, x="method", y="rho", color="method_type", 
+fig2b <- ggerrorplot(fit_summary, x="method", y="rho", color="method_type", 
           facet.by = c("Diversity_index", "scenario"), desc_stat="mean_ci", size=0.3,
           fill="method_type", 
           error.plot = "pointrange", palette=get_palette("Spectral",11)[c(2,5,8,10)], legend.title="Method type",
@@ -304,18 +304,18 @@ fig1b <- ggerrorplot(fit_summary, x="method", y="rho", color="method_type",
         face = "bold"), legend.title = element_text(face = "bold")) +
     labs(x = "Method")
 
-fig1b
-ggsave(fig1b, filename = "output/alpha_div/correlation_alpha_div_real.ps", device="ps", height=8, width=8)
+fig2b
+ggsave(fig2b, filename = "output/alpha_div/correlation_alpha_div_real.ps", device="ps", height=8, width=9)
 
 
 
 # For supplementary
 method_type <- tibble(method=c("Real", "Seq", "RMP", "CSS", "GMPR",
-                               "UQ", "RLE", "TMM","QMP", "QMP-NR"),
+                               "UQ", "RLE", "TMM","QMP", "ACS"),
                       method_type=c("No transformation", "Sequencing", 
                                     "Traditional transformations", 
                                     rep("Compositional transformations", times=5),
-                                    rep("Quantitative transformations", times=2)))
+                                    rep("Transformations incorporating microbial loads", times=2)))
 richness_counts_all <- richness_counts_all %>% 
     left_join(method_type, by="method")
 richness_counts_all$spread <- factor(richness_counts_all$spread, 
@@ -326,7 +326,7 @@ richness_counts_all$scenario <- factor(richness_counts_all$scenario,
                                        levels=c("Healthy", "Blooming", "Dysbiosis"))
 richness_counts_all$method <- factor(richness_counts_all$method, 
                                      levels=c("Real", "Seq", "RMP", "CSS", "GMPR",
-                                              "UQ", "RLE", "TMM", "QMP", "QMP-NR"))
+                                              "UQ", "RLE", "TMM", "QMP", "ACS"))
 richness_counts_all$matrix <- factor(richness_counts_all$matrix, 
                                      levels=c("S1", "S2", "S3", "S4", "S5", "S6",
                                               "S7", "S8", "S9", "S10",

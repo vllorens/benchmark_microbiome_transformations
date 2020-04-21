@@ -9,10 +9,11 @@ data/seq_matrices/*
 data/rmp_matrices/*
 data/qmp_matrices/*
 data/metadata_matrices/*
-data/qmp2_matrices/*
+data/acs_matrices/*
 data/correlations_taxontaxon/*
 data/correlations_taxonmetadata/*
 data/correlations_proportionality/*
+output/*
 output/taxontaxon/*
 output/taxonmetadata/*
 output/alpha_div/*
@@ -24,3 +25,4 @@ output/proportionality/*
 output/seq_depth/*
 output/taxon_prevalence/*
 output/proportionality/*
+*._*

@@ -42,7 +42,7 @@ for(seqdepth in c(9.9, 10.3, 10.81, 11.51, 12.2, 13.12)){ # different sequencing
     system("mkdir -p data/seq_matrices")
     system("mkdir -p data/rmp_matrices")
     system("mkdir -p data/qmp_matrices")
-    system("mkdir -p data/qmp2_matrices")
+    system("mkdir -p data/acs_matrices")
     system("mkdir -p data/metadata_matrices")
     system("mkdir -p data/correlations_taxontaxon")
     system("mkdir -p data/correlations_taxonmetadata")
@@ -52,7 +52,7 @@ for(seqdepth in c(9.9, 10.3, 10.81, 11.51, 12.2, 13.12)){ # different sequencing
     system("rm -rf data/seq_matrices/*")
     system("rm -rf data/rmp_matrices/*")
     system("rm -rf data/qmp_matrices/*")
-    system("rm -rf data/qmp2_matrices/*")
+    system("rm -rf data/acs_matrices/*")
     system("rm -rf data/metadata_matrices/*")
     system("rm -rf data/correlations_taxontaxon/*")
     system("rm -rf data/correlations_taxonmetadata/*")
@@ -138,19 +138,19 @@ for(seqdepth in c(9.9, 10.3, 10.81, 11.51, 12.2, 13.12)){ # different sequencing
                     quote = FALSE, row.names = TRUE, col.names=T, sep="\t")
     }
     
-    # the QMP-NR data comes from multiplying sequencing data by a factor to get numbers proportional to the number of counts
+    # the ACS data comes from multiplying sequencing data by a factor to get numbers proportional to the number of counts
     # i.e. without first rarefying to even sampling depth
     for(file in list.files("data/seq_matrices", full.names = T)){
         filename <- basename(file) %>% 
-            gsub(x=., pattern="seqOut_taxonomy", replacement="QMP2_taxonomy")
-        original_file <- paste0("data/tax_matrices/", gsub(filename, pattern="QMP2_", replacement=""))
+            gsub(x=., pattern="seqOut_taxonomy", replacement="ACS_taxonomy")
+        original_file <- paste0("data/tax_matrices/", gsub(filename, pattern="ACS_", replacement=""))
         counts <- read.table(original_file, header=T, stringsAsFactors=F, sep="\t") %>% 
             apply(., 2, sum)
         seq <- read.table(file, header=T, stringsAsFactors=F, sep="\t")
         counts_seq <- apply(seq, 2, sum)
         factors <- counts/counts_seq
-        QMP2 <- sweep(seq, MARGIN = 2, factors, '*')
-        write.table(QMP2, file = paste0("data/qmp2_matrices/", filename), 
+        ACS <- sweep(seq, MARGIN = 2, factors, '*')
+        write.table(ACS, file = paste0("data/acs_matrices/", filename), 
                     quote = FALSE, row.names = TRUE, col.names=T, sep="\t")
     }
     
@@ -646,8 +646,8 @@ for(seqdepth in c(9.9, 10.3, 10.81, 11.51, 12.2, 13.12)){ # different sequencing
                     col.names=T, row.names=T, quote=F, sep="\t")
     }
     
-    # QMP2
-    for(file in list.files("data/qmp2_matrices", full.names = T)){
+    # ACS
+    for(file in list.files("data/acs_matrices", full.names = T)){
         # read file and select only those taxa to keep
         filename <- basename(file)
         taxa_to_keep <- taxaToKeep(filename)
@@ -655,7 +655,7 @@ for(seqdepth in c(9.9, 10.3, 10.81, 11.51, 12.2, 13.12)){ # different sequencing
             as.matrix()
         tax_matrix <- tax_matrix[taxa_to_keep,]
         # read metadata file
-        filename_metadata <- gsub(filename, pattern="QMP2_", replacement="")
+        filename_metadata <- gsub(filename, pattern="ACS_", replacement="")
         metadata_matrix <- read.table(paste0("data/metadata_matrices/metadata_", filename_metadata))
         # calculate correlations and pvalues (taxon-taxon)
         taxon_correlation_object <- taxon_correlation(tax_matrix) 
@@ -666,8 +666,8 @@ for(seqdepth in c(9.9, 10.3, 10.81, 11.51, 12.2, 13.12)){ # different sequencing
         colnames(metadata_correlation_object[[2]]) <- colnames(metadata_correlation_object[[1]])
         rownames(metadata_correlation_object[[2]]) <- rownames(metadata_correlation_object[[1]])
         # write output (taxon-taxon)
-        outputname_correlation <- gsub(filename, pattern="QMP2_taxonomy", replacement="taxontaxon_rho_QMP-NR")
-        outputname_pval <- gsub(filename, pattern="QMP2_taxonomy", replacement="taxontaxon_pvalue_QMP-NR")
+        outputname_correlation <- gsub(filename, pattern="ACS_taxonomy", replacement="taxontaxon_rho_ACS")
+        outputname_pval <- gsub(filename, pattern="ACS_taxonomy", replacement="taxontaxon_pvalue_ACS")
         write.table(taxon_correlation_object[[1]], 
                     paste0("data/correlations_taxontaxon/", outputname_correlation), 
                     col.names=T, row.names=T, quote=F, sep="\t")
@@ -675,8 +675,8 @@ for(seqdepth in c(9.9, 10.3, 10.81, 11.51, 12.2, 13.12)){ # different sequencing
                     paste0("data/correlations_taxontaxon/", outputname_pval), 
                     col.names=T, row.names=T, quote=F, sep="\t")
         # write output (taxon-metadata)
-        outputname_correlation <- gsub(filename, pattern="QMP2_taxonomy", replacement="taxonmetadata_rho_QMP-NR")
-        outputname_pval <- gsub(filename, pattern="QMP2_taxonomy", replacement="taxonmetadata_pvalue_QMP-NR")
+        outputname_correlation <- gsub(filename, pattern="ACS_taxonomy", replacement="taxonmetadata_rho_ACS")
+        outputname_pval <- gsub(filename, pattern="ACS_taxonomy", replacement="taxonmetadata_pvalue_ACS")
         write.table(metadata_correlation_object[[1]], 
                     paste0("data/correlations_taxonmetadata/", outputname_correlation), 
                     col.names=T, row.names=T, quote=F, sep="\t")
@@ -839,7 +839,7 @@ r500 <- r500 %>% mutate(num_samples="500000")
 rr <- bind_rows(r05,r10,r20,r50,r100,r500)
 rr$method <- factor(rr$method, levels=c("AST", "CLR", "RMP", "CSS", "GMPR",
                                         "RLE", "TMM", "UQ", "VST",
-                                        "QMP", "QMP-NR"))
+                                        "QMP", "ACS"))
 rr$num_samples <- factor(rr$num_samples, levels=c("20000", "30000", "50000", "100000", "200000", 
                                                   "500000"))
 rr$spread <- factor(rr$spread, levels=c("low", "high"))
@@ -878,7 +878,7 @@ r500 <- r500 %>% mutate(num_samples="500000")
 rr <- bind_rows(r05,r10,r20,r50,r100,r500)
 rr$method <- factor(rr$method, levels=c("AST", "CLR", "RMP", "CSS", "GMPR",
                                         "RLE", "TMM", "UQ", "VST",
-                                        "QMP", "QMP-NR"))
+                                        "QMP", "ACS"))
 rr$num_samples <- factor(rr$num_samples, levels=c("20000", "30000", "50000", "100000", "200000", 
                                                   "500000"))
 rr$spread <- factor(rr$spread, levels=c("low", "high"))

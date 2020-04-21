@@ -27,7 +27,7 @@ system("mkdir -p data/tax_matrices")
 system("mkdir -p data/seq_matrices")
 system("mkdir -p data/rmp_matrices")
 system("mkdir -p data/qmp_matrices")
-system("mkdir -p data/qmp2_matrices")
+system("mkdir -p data/acs_matrices")
 system("mkdir -p data/metadata_matrices")
 system("mkdir -p output/rawdataplots")
 
@@ -36,7 +36,7 @@ system("rm -r data/tax_matrices/*")
 system("rm -r data/seq_matrices/*")
 system("rm -r data/rmp_matrices/*")
 system("rm -r data/qmp_matrices/*")
-system("rm -r data/qmp2_matrices/*")
+system("rm -r data/acs_matrices/*")
 system("rm -r data/metadata_matrices/*")
 system("rm -r output/rawdataplots/*")
 
@@ -47,7 +47,7 @@ rm(list = setdiff(ls(), lsf.str()))
 #### Generate original matrices ####
 
 # Load simulated matrices
-load("data/raw/20191122_sims_Pedro_v2.4.Rdata")
+load("data/raw/20191007_sims_Pedro_v2.5.Rdata")
 for(tab in ls(pattern = "Mp")){
     ind_matrix <- get(tab) %>% 
         t() 
@@ -79,7 +79,7 @@ for(tab in ls(pattern = "Mp")){
                 col.names = T, row.names=T, quote=F, sep="\t")
 }
 
-#### Generate sequencing data, RMP, QMP and QMP-NR matrices ####
+#### Generate sequencing data, RMP, QMP and ACS matrices ####
 
 # the sequencing data comes from the real simulated matrix
 # sequencing matrices include an average of 30000 sequencing reads/counts per sample
@@ -130,19 +130,19 @@ for(file in list.files("data/seq_matrices", full.names = T)){
                 quote = FALSE, row.names = TRUE, col.names=T, sep="\t")
 }
 
-# the QMP-NR data comes from multiplying sequencing data by a factor to get numbers proportional to the number of counts
+# the ACS data comes from multiplying sequencing data by a factor to get numbers proportional to the number of counts
 # i.e. without first rarefying to even sampling depth
 for(file in list.files("data/seq_matrices", full.names = T)){
     filename <- basename(file) %>% 
-        gsub(x=., pattern="seqOut_taxonomy", replacement="QMP2_taxonomy")
-    original_file <- paste0("data/tax_matrices/", gsub(filename, pattern="QMP2_", replacement=""))
+        gsub(x=., pattern="seqOut_taxonomy", replacement="ACS_taxonomy")
+    original_file <- paste0("data/tax_matrices/", gsub(filename, pattern="ACS_", replacement=""))
     counts <- read.table(original_file, header=T, stringsAsFactors=F, sep="\t") %>% 
         apply(., 2, sum)
     seq <- read.table(file, header=T, stringsAsFactors=F, sep="\t")
     counts_seq <- apply(seq, 2, sum)
     factors <- counts/counts_seq
-    QMP2 <- sweep(seq, MARGIN = 2, factors, '*')
-    write.table(QMP2, file = paste0("data/qmp2_matrices/", filename), 
+    ACS <- sweep(seq, MARGIN = 2, factors, '*')
+    write.table(ACS, file = paste0("data/acs_matrices/", filename), 
                 quote = FALSE, row.names = TRUE, col.names=T, sep="\t")
 }
 
