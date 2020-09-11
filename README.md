@@ -2,7 +2,7 @@
 
 # Microbiota simulations
 
-This repository contains the scripts to generate and analyze the simulations from the paper "xxx xxx xxx". 
+This repository contains the scripts to generate and analyze the simulations from the paper "Quantitative Microbiome Profiling outperforms computational microbiome data normalizations in mitigating compositionality effects". 
 
 
 ## How to use this repository
@@ -63,7 +63,7 @@ Quantitative (experimentally-derived) transformations:
 * *QMP*: Normalized by rarefying to even sampling depth and scaling to total microbial loads (measured experimentally).
 * *ACS*: Normalized by scaling to total microbial loads (measured experimentally).
 
-Additionally, we calculate these correlations in the original simulated matrices (REAL) for reference.
+Additionally, we calculate these correlations in the original simulated matrices (*REAL*) for reference.
 
 In all of these methods, we will only evaluate those taxa with prevalence > 50%. We will use the sequencing matrix to determine this threshold on the zeros.
 
