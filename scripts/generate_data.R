@@ -47,7 +47,7 @@ rm(list = setdiff(ls(), lsf.str()))
 #### Generate original matrices ####
 
 # Load simulated matrices
-load("data/raw/20191007_sims_Pedro_v2.5.Rdata")
+load("data/raw/20200707_sims_Pedro_v5.2.Rdata")
 for(tab in ls(pattern = "Mp")){
     ind_matrix <- get(tab) %>% 
         t() 
@@ -175,9 +175,9 @@ for(file in list.files("data/tax_matrices", full.names = T)){
 
 #### Calculate matrix basic stats ####
 
-# Matrix stats
+# Matrix stats --> a reduced version of this with some columns removed is table S1
 matrix_stats <- tibble()
-stats <- as.tibble(stats_table)
+stats <- as_tibble(stats_table)
 for(file in list.files("data/tax_matrices", full.names = T)){
     # read file 
     filename <- basename(file)
@@ -203,39 +203,175 @@ for(file in list.files("data/tax_matrices", full.names = T)){
     # specialtaxa
     sptax <- stats %>% 
         dplyr::filter(grepl(paste0(matrix_name, "_"), matrix)) %>% 
-        pull(dysbiotic_taxon)
+        pull(bloomer_or_dysbiotic_taxon)
     cor_special_effsize <- taxoncor[[1]][sptax]
     cor_special_pvalue <- taxoncor[[2]][sptax]
     # specialtaxa_2_onlydysbiosis
     if(scenario_name=="Dysbiosis"){
         sptax2 <- stats %>% 
             dplyr::filter(grepl(paste0(matrix_name, "_"), matrix)) %>% 
-            pull(flat_taxon)
-        cor_special_effsize2 <- taxoncor[[1]][sptax2]
-        cor_special_pvalue2 <- taxoncor[[2]][sptax2]
+            pull(flat_taxa) %>% strsplit(., split=",") %>% unlist()
+        falseflat <- names(which(taxoncor[[2]][sptax2]<0.05))
+        sptax2 <- setdiff(sptax2, falseflat)
+        cor_special_effsize2 <- taxoncor[[1]][sptax2] %>% mean()
+        cor_special_pvalue2 <- taxoncor[[2]][sptax2] %>% mean()
+        sptax2 <- paste(sptax2, collapse=",")
     } else{
         sptax2 <- NA
         cor_special_effsize2 <- NA
         cor_special_pvalue2 <- NA
     }
     
+    # richness (number of species) and evenness (pielou's)
+    richness_obs <- vegan::specnumber(t(tax_matrix))
+    richness_shannnon <- vegan::diversity(t(tax_matrix), index = "shannon")
+    evenness_pielou <- richness_shannnon/log(richness_obs)
+    
+    # read sequencing data file
+    seq_matrix <- read.table(paste0("data/seq_matrices/seqOut_",filename), header=T, stringsAsFactors=F, sep="\t")
+    seq_counts <- seq_matrix %>% 
+        as.matrix() %>% 
+        apply(.,2,sum)
+    
+    # sampling depth
+    sampling_depth <- 100*seq_counts/original_counts
+    
     # put everythiing together
     matrix_stats_current <- tibble(matrix=matrix_name, spread_type=spread_name,
                                    scenario=scenario_name, spread=spread, 
+                                   
                                    non_correlated_taxa=not_cor,
                                    positively_correlated_taxa=pos_cor,
                                    negatively_correlated_taxa=neg_cor,
+                                   
                                    special_taxon=sptax,
                                    flat_taxon_dysbiosis=sptax2,
+                                   
                                    correlation_special_counts=cor_special_effsize,
                                    correlation_special_counts_p=cor_special_pvalue,
                                    correlation_flat_counts_dysbiosis=cor_special_effsize2,
-                                   correlation_flat_counts_dysbiosis_p=cor_special_pvalue2)
+                                   correlation_flat_counts_dysbiosis_p=cor_special_pvalue2,
+                                   
+                                   cell_density_median=formatC(median(original_counts), format="e", digits = 2),
+                                   cell_density_range=paste(formatC(range(original_counts), format="e", digits = 2), collapse=" - "),
+                                   
+                                   richness_median=median(richness_obs),
+                                   richness_range=paste(range(richness_obs), collapse=" - "),
+                                   
+                                   evenness_median=round(median(evenness_pielou),2),
+                                   evenness_range=paste(round(range(evenness_pielou),2), collapse=" - "),
+                                   
+                                   seq_depth_median=median(seq_counts),
+                                   seq_depth_range=paste(range(seq_counts), collapse=" - "),
+                                   
+                                   sampling_depth_median=median(sampling_depth),
+                                   sampling_depth_range=paste(formatC(range(sampling_depth), format="e", digits = 2), collapse=" - ")
+                                   )
     matrix_stats <- bind_rows(matrix_stats, matrix_stats_current)
 }
 
 write_tsv(matrix_stats, "data/raw/matrix_stats_3scenarios.tsv", col_names = T)
 
+#### Calculate sampling depth for all samples ####
+sequencing_stats <- tibble()
+# Sampling depth is the number of reads divided by the total cell counts
+for(file in list.files("data/tax_matrices", full.names = T)){
+    # read file 
+    filename <- basename(file)
+    tax_matrix <- read.table(file, header=T, stringsAsFactors=F, sep="\t") %>% 
+        as.matrix() %>% 
+        round
+    matrix_name <- strsplit(filename, split="_")[[1]][2]
+    spread_name <- strsplit(filename, split="_")[[1]][3]
+    scenario_name <- strsplit(filename, split="_")[[1]][5] %>% gsub(., pattern="\\.tsv", replacement="")
+    # read total counts file
+    original_file <- file
+    original_counts <- read.table(original_file, header=T, stringsAsFactors=F, sep="\t") %>% 
+        as.matrix() %>% 
+        apply(.,2,sum)
+    spread <- range(original_counts)[2]/range(original_counts)[1]
+    
+    # read sequencing data file
+    seq_matrix <- read.table(paste0("data/seq_matrices/seqOut_",filename), header=T, stringsAsFactors=F, sep="\t")
+    seq_counts <- seq_matrix %>% 
+        as.matrix() %>% 
+        apply(.,2,sum)
+    # sampling depth in %
+    sampling_depth <- seq_counts*100/original_counts
+    tib <- tibble(seq_counts, sampling_depth, matrix_name, spread_name, scenario_name)
+    sequencing_stats <- bind_rows(sequencing_stats, tib)
+}
+
+gghistogram(sequencing_stats, x = "seq_counts", fill = "lightgray", add="median", 
+            facet.by="scenario_name", title="Sequencing depth", xlab="Sequencing counts",
+            ylab="Frequency") + theme_bw()
+
+gghistogram(sequencing_stats, x = "sampling_depth", fill = "lightgray", add="median", 
+            facet.by="scenario_name", title="Sampling depth", xlab="Sampling depth",
+            ylab="Frequency") + theme_bw()
+
+ggboxplot(sequencing_stats, x = "scenario_name", y="sampling_depth", fill = "lightgray", 
+          title="Sampling depth", xlab="Scenario",
+            ylab="Sampling depth") + theme_bw()
+
+write_tsv(sequencing_stats, "data/raw/sequencing_stats_3scenarios.tsv", col_names = T)
+
+
+# rarest (non-zero) taxa
+rarest_abundance <- tibble()
+for(file in list.files("data/tax_matrices", full.names = T)){
+    # read file 
+    filename <- basename(file)
+    tax_matrix <- read.table(file, header=T, stringsAsFactors=F, sep="\t") %>% 
+        as.matrix() %>% 
+        round
+    matrix_name <- strsplit(filename, split="_")[[1]][2]
+    spread_name <- strsplit(filename, split="_")[[1]][3]
+    scenario_name <- strsplit(filename, split="_")[[1]][5] %>% gsub(., pattern="\\.tsv", replacement="")
+    # rarest non-zero taxa
+    tax_matrix[tax_matrix==0] <- NA
+    rarest <- apply(tax_matrix, 2, which.min)
+    rarest_original <- c()
+    for(i in 1:ncol(tax_matrix)){
+        rarest_original <- c(rarest_original, tax_matrix[rarest[i],i])
+    }
+    original_counts <- read.table(original_file, header=T, stringsAsFactors=F, sep="\t") %>% 
+        as.matrix() %>% 
+        apply(.,2,sum)
+    rarest_original_percentage <- rarest_original*100/original_counts
+    # read sequencing data file
+    seq_matrix <- read.table(paste0("data/seq_matrices/seqOut_",filename), header=T, stringsAsFactors=F, sep="\t")
+    rarest_seq <- c()
+    for(i in 1:ncol(tax_matrix)){
+        rarest_seq <- c(rarest_seq, seq_matrix[rarest[i],i])
+    }
+    tib <- tibble(rarest_original, rarest_original_percentage, rarest_seq, matrix_name, scenario_name, spread_name)
+    rarest_abundance <- bind_rows(rarest_abundance, tib)
+}
+rarest_abundance <- rarest_abundance %>% dplyr::filter(rarest_original>0)
+gghistogram(rarest_abundance, x = "rarest_original", fill = "lightgray", add="median", 
+            facet.by="scenario_name", title="Rarest taxon (non-zero) abundance", xlab="Rarest taxon abundance",
+            ylab="Frequency") + theme_bw()
+gghistogram(rarest_abundance, x = "rarest_original_percentage", fill = "lightgray", add="median", 
+            facet.by="scenario_name", title="Rarest taxon (non-zero) abundance", xlab="Rarest taxon abundance (% over total community)",
+            ylab="Frequency") + theme_bw()
+
+
+#### random samples from succession scenario ####
+tax_matrix <- read.table("data/tax_matrices/taxonomy_S1_low_spread_Healthy.tsv", header=T, stringsAsFactors=F, sep="\t") %>% 
+    as.matrix() %>% 
+    round
+
+set.seed(42)
+tax_matrix <- tax_matrix[,sample(1:ncol(tax_matrix),size=1, replace = F)] %>%
+    as.tibble %>%
+    mutate(taxon=rownames(tax_matrix)) %>% 
+    gather(key = "sample", value="counts", -taxon)
+
+tax_matrix$taxon <- factor(tax_matrix$taxon, levels=unique(unlist(tax_matrix[order(tax_matrix$counts),"taxon"])))
+
+
+ggbarplot(tax_matrix, x="taxon", y="counts",  title="Taxon abundances", xlab="Taxon", ylab="Abundance") + theme_bw()
 
 
 #### Plot original datasets (Figure 1a) ####
@@ -268,14 +404,10 @@ for(file in list.files("data/tax_matrices", full.names = T)){
         opportunist <- matrix_stats %>% 
             filter(matrix==matrix_name) %>% 
             pull(special_taxon)
-        irresponsive <- c()
-        irresponsive <- matrix_stats %>% 
-            filter(matrix==matrix_name) %>% 
-            pull(flat_taxon_dysbiosis)
-        top10sp <- unique(c(top10, opportunist, irresponsive))
-        if(top10sp!=10){ # keep the taxa plotted to 10 max
+        top10sp <- unique(c(top10, opportunist))
+        if(length(top10sp)!=10){ # keep the taxa plotted to 10 max
             top10sp <- unique(c(top10[1:(10-(length(top10sp)-length(top10)))], 
-                                opportunist, irresponsive))
+                                opportunist))
         }
     }
     if(scenario_name=="Blooming"){
@@ -284,7 +416,7 @@ for(file in list.files("data/tax_matrices", full.names = T)){
             filter(matrix==matrix_name) %>% 
             pull(special_taxon)
         top10sp <- unique(c(top10, bloomer))
-        if(top10sp!=10){ # keep the taxa plotted to 10 max
+        if(length(top10sp)!=10){ # keep the taxa plotted to 10 max
             top10sp <- unique(c(top10[1:(10-(length(top10sp)-length(top10)))], 
                                 bloomer))
         }
@@ -319,10 +451,6 @@ for(file in list.files("data/tax_matrices", full.names = T)){
                                     replacement=paste0(opportunist, "_Opportunist"))
         top10sp <- gsub(top10sp, pattern=opportunist, 
                       replacement=paste0(opportunist, "_Opportunist"))
-        simplifiedData$taxa <- gsub(simplifiedData$taxa, pattern=irresponsive, 
-                                    replacement=paste0(irresponsive, "_Unresponsive"))
-        top10sp <- gsub(top10sp, pattern=irresponsive, 
-                      replacement=paste0(irresponsive, "_Unresponsive"))
         top10sp <- sort(top10sp)
         legendtitle <- "Top 10 and special taxa"
     }

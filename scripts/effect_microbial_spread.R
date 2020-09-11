@@ -74,8 +74,8 @@ results_all$method_type <- factor(results_all$method_type,
                                        "Transformations incorporating microbial loads"))
 results_all$method <- factor(results_all$method, levels=c("RMP", "AST", "CLR", "CSS", "GMPR",
                                                   "UQ", "RLE", "TMM", "VST", "QMP", "ACS"))
-ggboxplot(results_all, x="spread", y="Precision", alpha=0.5,
-          fill="spread", facet.by = "method", nrow=1,
+ggboxplot(results_all, x="spread", y="Precision", 
+          fill="spread", facet.by = "method", nrow=1, add ="jitter",
           ylab="Precision [TP/TP+FP]",ylim=c(0,130),
           palette=get_palette("Spectral", k = 11)[c(2,4,10)],
           main="Taxon-taxon correlations | Effect of microbial load spreads") + 
@@ -83,37 +83,37 @@ ggboxplot(results_all, x="spread", y="Precision", alpha=0.5,
                                  c("medium", "high"),
                                  c("low", "high")), FDR = T, 
                 step_increase = c(0.05,0.05,0.05),tip_length = 0, map_signif_level = T) +
-    geom_point(aes(fill=spread), size=2, shape=21, colour="grey20",
-               position=position_jitter(width=0.2, height=0)) +
+    # geom_point(aes(fill=spread), size=2, shape=21, colour="grey20",
+    #            position=position_jitter(width=0.2, height=0)) +
     theme_bw()+ rotate_x_text() +
     theme(plot.title = element_text(face = "bold")) + theme(axis.title = element_text(size = 14), 
                                                             axis.text.x = element_text(size = 12), 
                                                             axis.text.y = element_text(size = 12), 
                                                             plot.title = element_text(size = 16)) +labs(x = NULL)
 
-ggsave(filename = "output/microbial_spread/plot_taxontaxon_precision_spread.ps", device = "ps", width = 11, height=4)
+ggsave(filename = "output/microbial_spread/plot_taxontaxon_precision_spread.ps", device = "ps", width = 11, height=3.5)
 
-ggboxplot(results_all, x="spread", y="Recall", alpha=0.5,
+ggboxplot(results_all, x="spread", y="Recall", 
           fill="spread", facet.by = "method", nrow=1,
-          ylab="Recall [TP/TP+FN]",ylim=c(0,130),
+          ylab="Recall [TP/TP+FN]",ylim=c(0,130), add = "jitter",
           palette=get_palette("Spectral", k = 11)[c(2,4,10)],
           main="Taxon-taxon correlations | Effect of microbial load spreads") + 
     geom_signif(comparisons=list(c("low", "medium"),
                                  c("medium", "high"),
                                  c("low", "high")), FDR = T, 
                 step_increase = c(0.05,0.05,0.05),tip_length = 0, map_signif_level = T) +
-    geom_point(aes(fill=spread), size=2, shape=21, colour="grey20",
-               position=position_jitter(width=0.2, height=0)) +
+    # geom_point(aes(fill=spread), size=2, shape=21, colour="grey20",
+    #            position=position_jitter(width=0.2, height=0)) +
     theme_bw()+ rotate_x_text() +
     theme(plot.title = element_text(face = "bold")) + theme(axis.title = element_text(size = 14), 
                                                             axis.text.x = element_text(size = 12), 
                                                             axis.text.y = element_text(size = 12), 
                                                             plot.title = element_text(size = 16)) +labs(x = NULL)
 
-ggsave(filename = "output/microbial_spread/plot_taxontaxon_recall_spread.ps", device = "ps", width = 11, height=4)
+ggsave(filename = "output/microbial_spread/plot_taxontaxon_recall_spread.ps", device = "ps", width = 11, height=3.5)
 
-ggboxplot(results_all, x="spread", y="false_positive_rate", alpha=0.5,
-          fill="spread", facet.by = "method", nrow=1,
+ggboxplot(results_all, x="spread", y="false_positive_rate", 
+          fill="spread", facet.by = "method", nrow=1, add="jitter",
           ylab="False positive rate [FP/FP+TN]",ylim=c(0,130),
           palette=get_palette("Spectral", k = 11)[c(2,4,10)],
           main="Taxon-taxon correlations | Effect of microbial load spreads") + 
@@ -121,15 +121,15 @@ ggboxplot(results_all, x="spread", y="false_positive_rate", alpha=0.5,
                                  c("medium", "high"),
                                  c("low", "high")), FDR = T, 
                 step_increase = c(0.05,0.05,0.05),tip_length = 0, map_signif_level = T) +
-    geom_point(aes(fill=spread), size=2, shape=21, colour="grey20",
-               position=position_jitter(width=0.2, height=0)) +
+    # geom_point(aes(fill=spread), size=2, shape=21, colour="grey20",
+    #            position=position_jitter(width=0.2, height=0)) +
     theme_bw()+ rotate_x_text() +
     theme(plot.title = element_text(face = "bold")) + theme(axis.title = element_text(size = 14), 
                                                             axis.text.x = element_text(size = 12), 
                                                             axis.text.y = element_text(size = 12), 
                                                             plot.title = element_text(size = 16)) +labs(x = NULL)
 
-ggsave(filename = "output/microbial_spread/plot_taxontaxon_FPR_spread.ps", device = "ps", width = 11, height=4)
+ggsave(filename = "output/microbial_spread/plot_taxontaxon_FPR_spread.ps", device = "ps", width = 11, height=3.5)
 
 
 
@@ -155,8 +155,8 @@ results_neg <- resultsinfo %>% dplyr::filter(datatable=="neg")
 results_not <- resultsinfo %>% dplyr::filter(datatable=="not")
 results_all$method <- factor(results_all$method, levels=c("RMP", "AST", "CLR", "CSS", "GMPR",
                                                           "UQ", "RLE", "TMM", "VST", "QMP", "ACS"))
-ggboxplot(results_all, x="spread", y="Precision", alpha=0.5,
-          fill="spread", facet.by = "method", nrow=1,
+ggboxplot(results_all, x="spread", y="Precision", 
+          fill="spread", facet.by = "method", nrow=1, add ="jitter",
           ylab="Precision [TP/TP+FP]", ylim=c(0,130),
           palette=get_palette("Spectral", k = 11)[c(2,4,10)],
           main="Taxon-metadata correlations | Effect of microbial load spreads") + 
@@ -164,18 +164,18 @@ ggboxplot(results_all, x="spread", y="Precision", alpha=0.5,
                                  c("medium", "high"),
                                  c("low", "high")), FDR = T, 
                 step_increase = c(0.05,0.05,0.05),tip_length = 0, map_signif_level = T) +
-    geom_point(aes(fill=spread), size=2, shape=21, colour="grey20",
-               position=position_jitter(width=0.2, height=0)) +
+    # geom_point(aes(fill=spread), size=2, shape=21, colour="grey20",
+    #            position=position_jitter(width=0.2, height=0)) +
     theme_bw()+ rotate_x_text() +
     theme(plot.title = element_text(face = "bold")) + theme(axis.title = element_text(size = 14), 
                                                             axis.text.x = element_text(size = 12), 
                                                             axis.text.y = element_text(size = 12), 
                                                             plot.title = element_text(size = 16)) +labs(x = NULL)
 
-ggsave(filename = "output/microbial_spread/plot_taxonmetadata_precision_spread.ps", device = "ps", width = 11, height=4)
+ggsave(filename = "output/microbial_spread/plot_taxonmetadata_precision_spread.ps", device = "ps", width = 11, height=3.5)
 
-ggboxplot(results_all, x="spread", y="Recall", alpha=0.5,
-          fill="spread", facet.by = "method", nrow=1,
+ggboxplot(results_all, x="spread", y="Recall",
+          fill="spread", facet.by = "method", nrow=1, add="jitter",
           ylab="Recall [TP/TP+FN]",ylim=c(0,130),
           palette=get_palette("Spectral", k = 11)[c(2,4,10)],
           main="Taxon-metadata correlations | Effect of microbial load spreads") + 
@@ -183,18 +183,18 @@ ggboxplot(results_all, x="spread", y="Recall", alpha=0.5,
                                  c("medium", "high"),
                                  c("low", "high")), FDR = T, 
                 step_increase = c(0.05,0.05,0.05),tip_length = 0, map_signif_level = T) +
-    geom_point(aes(fill=spread), size=2, shape=21, colour="grey20",
-               position=position_jitter(width=0.2, height=0)) +
+    # geom_point(aes(fill=spread), size=2, shape=21, colour="grey20",
+    #            position=position_jitter(width=0.2, height=0)) +
     theme_bw()+ rotate_x_text() +
     theme(plot.title = element_text(face = "bold")) + theme(axis.title = element_text(size = 14), 
                                                             axis.text.x = element_text(size = 12), 
                                                             axis.text.y = element_text(size = 12), 
                                                             plot.title = element_text(size = 16)) +labs(x = NULL)
 
-ggsave(filename = "output/microbial_spread/plot_taxonmetadata_recall_spread.ps", device = "ps", width = 11, height=4)
+ggsave(filename = "output/microbial_spread/plot_taxonmetadata_recall_spread.ps", device = "ps", width = 11, height=3.5)
 
-ggboxplot(results_all, x="spread", y="false_positive_rate", alpha=0.5,
-          fill="spread", facet.by = "method", nrow=1,
+ggboxplot(results_all, x="spread", y="false_positive_rate",
+          fill="spread", facet.by = "method", nrow=1, add="jitter",
           ylab="False positive rate [FP/FP+TN]",ylim=c(0,13),
           palette=get_palette("Spectral", k = 11)[c(2,4,10)],
           main="Taxon-metadata correlations | Effect of microbial load spreads") + 
@@ -202,13 +202,13 @@ ggboxplot(results_all, x="spread", y="false_positive_rate", alpha=0.5,
                                  c("medium", "high"),
                                  c("low", "high")), FDR = T, 
                 step_increase = c(0.05,0.05,0.05),tip_length = 0, map_signif_level = T) +
-    geom_point(aes(fill=spread), size=2, shape=21, colour="grey20",
-               position=position_jitter(width=0.2, height=0)) +
+    # geom_point(aes(fill=spread), size=2, shape=21, colour="grey20",
+    #            position=position_jitter(width=0.2, height=0)) +
     theme_bw()+ rotate_x_text() +
     theme(plot.title = element_text(face = "bold")) + theme(axis.title = element_text(size = 14), 
                                                             axis.text.x = element_text(size = 12), 
                                                             axis.text.y = element_text(size = 12), 
                                                             plot.title = element_text(size = 16)) +labs(x = NULL)
 
-ggsave(filename = "output/microbial_spread/plot_taxonmetadata_FPR_spread.ps", device = "ps", width = 11, height=4)
+ggsave(filename = "output/microbial_spread/plot_taxonmetadata_FPR_spread.ps", device = "ps", width = 11, height=3.5)
 

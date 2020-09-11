@@ -14,6 +14,7 @@ suppressPackageStartupMessages(library(ggsignif))
 suppressPackageStartupMessages(library(metagenomeSeq))
 suppressPackageStartupMessages(library(edgeR))
 suppressPackageStartupMessages(library(gdata))
+suppressPackageStartupMessages(library(RColorBrewer))
 
 # load functions
 source("R/estimateZeros.R")
@@ -34,7 +35,7 @@ system("rm -rf output/taxon_prevalence/*")
 # this script simply parses the original file to obtain separated matrices with the original simulated data
 set.seed(18102019)
 
-for(numberofzerostoaccept in c(0.05, 0.1, 0.2, 0.4, 0.5, 0.8)){ # loop over allowed proportion of zeros for one taxon to keep it
+for(numberofzerostoaccept in c(0.05, 0.1, 0.2, 0.4, 0.5)){ # loop over allowed proportion of zeros for one taxon to keep it
     
     taxaToKeep <- function(filename){
         seq_name <- gsub(filename, pattern="[[:print:]]*taxonomy", replacement="seqOut_taxonomy")
@@ -68,8 +69,8 @@ for(numberofzerostoaccept in c(0.05, 0.1, 0.2, 0.4, 0.5, 0.8)){ # loop over allo
     system("mkdir -p data/correlations_taxonmetadata/reference")
     
     #Load simulated matrices
-    load("data/raw/20191122_sims_Pedro_v2.4.Rdata")
-    
+    load("data/raw/20200707_sims_Pedro_v5.2.Rdata")
+ 
     for(tab in ls(pattern = "Mp")){
         ind_matrix <- get(tab) %>% 
             t() 
@@ -219,6 +220,86 @@ for(numberofzerostoaccept in c(0.05, 0.1, 0.2, 0.4, 0.5, 0.8)){ # loop over allo
                     col.names=T, row.names=T, quote=F, sep="\t")
     }
     
+    # Rel
+    for(file in list.files("data/seq_matrices", full.names = T)){
+        # read file and select only those taxa to keep
+        filename <- basename(file)
+        taxa_to_keep <- taxaToKeep(filename)
+        tax_matrix <- read.table(file, header=T, stringsAsFactors=F, sep="\t") %>%
+                as.matrix()
+        tax_matrix <- tax_matrix[taxa_to_keep,]
+        # transform data
+        total_counts <- apply(tax_matrix,2,sum)
+        tax_matrix <- sweep(tax_matrix, MARGIN = 2, total_counts, '/')
+        # read metadata file
+        filename_metadata <- gsub(filename, pattern="seqOut_", replacement="")
+        metadata_matrix <- read.table(paste0("data/metadata_matrices/metadata_", filename_metadata))
+        # calculate correlations and pvalues (taxon-taxon)
+        taxon_correlation_object <- taxon_correlation(tax_matrix)
+        taxon_correlation_object[[2]][upper.tri(taxon_correlation_object[[2]])] <- p.adjust(taxon_correlation_object[[2]][upper.tri(taxon_correlation_object[[2]])], method="BH")
+        # calculate correlations and pvalues (taxon-metadata)
+        metadata_correlation_object <- taxon_metadata_correlation(tax_matrix, metadata_matrix)
+        metadata_correlation_object[[2]] <- matrix(p.adjust(as.vector(as.matrix(metadata_correlation_object[[2]])), method='fdr'),ncol=ncol(metadata_correlation_object[[2]]))
+        colnames(metadata_correlation_object[[2]]) <- colnames(metadata_correlation_object[[1]])
+        rownames(metadata_correlation_object[[2]]) <- rownames(metadata_correlation_object[[1]])
+        # write output (taxon-taxon)
+        outputname_correlation <- gsub(filename, pattern="seqOut_taxonomy", replacement="taxontaxon_rho_Rel")
+        outputname_pval <- gsub(filename, pattern="seqOut_taxonomy", replacement="taxontaxon_pvalue_Rel")
+        write.table(taxon_correlation_object[[1]],
+                paste0("data/correlations_taxontaxon/", outputname_correlation),
+                col.names=T, row.names=T, quote=F, sep="\t")
+        write.table(taxon_correlation_object[[2]],
+                paste0("data/correlations_taxontaxon/", outputname_pval),
+                col.names=T, row.names=T, quote=F, sep="\t")
+        # write output (taxon-metadata)
+        outputname_correlation <- gsub(filename, pattern="seqOut_taxonomy", replacement="taxonmetadata_rho_Rel")
+        outputname_pval <- gsub(filename, pattern="seqOut_taxonomy", replacement="taxonmetadata_pvalue_Rel")
+        write.table(metadata_correlation_object[[1]],
+                paste0("data/correlations_taxonmetadata/", outputname_correlation),
+                col.names=T, row.names=T, quote=F, sep="\t")
+        write.table(metadata_correlation_object[[2]],
+                paste0("data/correlations_taxonmetadata/", outputname_pval),
+                col.names=T, row.names=T, quote=F, sep="\t")
+    }
+
+    # Seq
+    for(file in list.files("data/seq_matrices", full.names = T)){
+        # read file and select only those taxa to keep
+        filename <- basename(file)
+        taxa_to_keep <- taxaToKeep(filename)
+        tax_matrix <- read.table(file, header=T, stringsAsFactors=F, sep="\t") %>%
+            as.matrix()
+        tax_matrix <- tax_matrix[taxa_to_keep,]
+        # read metadata file
+        filename_metadata <- gsub(filename, pattern="seqOut_", replacement="")
+        metadata_matrix <- read.table(paste0("data/metadata_matrices/metadata_", filename_metadata))
+        # calculate correlations and pvalues (taxon-taxon)
+        taxon_correlation_object <- taxon_correlation(tax_matrix)
+        taxon_correlation_object[[2]][upper.tri(taxon_correlation_object[[2]])] <- p.adjust(taxon_correlation_object[[2]][upper.tri(taxon_correlation_object[[2]])], method="BH")
+        # calculate correlations and pvalues (taxon-metadata)
+        metadata_correlation_object <- taxon_metadata_correlation(tax_matrix, metadata_matrix)
+        metadata_correlation_object[[2]] <- matrix(p.adjust(as.vector(as.matrix(metadata_correlation_object[[2]])), method='fdr'),ncol=ncol(metadata_correlation_object[[2]]))
+        colnames(metadata_correlation_object[[2]]) <- colnames(metadata_correlation_object[[1]])
+        rownames(metadata_correlation_object[[2]]) <- rownames(metadata_correlation_object[[1]])
+        # write output (taxon-taxon)
+        outputname_correlation <- gsub(filename, pattern="seqOut_taxonomy", replacement="taxontaxon_rho_Seq")
+        outputname_pval <- gsub(filename, pattern="seqOut_taxonomy", replacement="taxontaxon_pvalue_Seq")
+        write.table(taxon_correlation_object[[1]],
+                paste0("data/correlations_taxontaxon/", outputname_correlation),
+                col.names=T, row.names=T, quote=F, sep="\t")
+        write.table(taxon_correlation_object[[2]],
+                paste0("data/correlations_taxontaxon/", outputname_pval),
+                col.names=T, row.names=T, quote=F, sep="\t")
+        # write output (taxon-metadata)
+        outputname_correlation <- gsub(filename, pattern="seqOut_taxonomy", replacement="taxonmetadata_rho_Seq")
+        outputname_pval <- gsub(filename, pattern="seqOut_taxonomy", replacement="taxonmetadata_pvalue_Seq")
+        write.table(metadata_correlation_object[[1]],
+                paste0("data/correlations_taxonmetadata/", outputname_correlation),
+                col.names=T, row.names=T, quote=F, sep="\t")
+        write.table(metadata_correlation_object[[2]],
+                paste0("data/correlations_taxonmetadata/", outputname_pval),
+                col.names=T, row.names=T, quote=F, sep="\t")
+    }
     
     # CLR
     for(file in list.files("data/seq_matrices", full.names = T)){
@@ -698,6 +779,7 @@ for(numberofzerostoaccept in c(0.05, 0.1, 0.2, 0.4, 0.5, 0.8)){ # loop over allo
     matrixnum <- c()
     datatable <- c()
     scen <- c()
+    discordant <- c()
     
     for(file in list.files("data/correlations_taxontaxon", recursive = F, pattern = "pvalue", full.names = T)){
         # define file name, method used and reference to be compared against
@@ -730,27 +812,29 @@ for(numberofzerostoaccept in c(0.05, 0.1, 0.2, 0.4, 0.5, 0.8)){ # loop over allo
         scen <- c(scen, scenarioname)
         datatable <- c(datatable, "all")
         true_positive <- c(true_positive, length(which(test_significant & reference_significant & test_sign==reference_sign)))
-        false_positive <- c(false_positive, length(which(test_significant & !reference_significant))+length(which(test_significant & reference_significant & test_sign!=reference_sign)))
+        false_positive <- c(false_positive, length(which(test_significant & !reference_significant)))
         true_negative <- c(true_negative, length(which(!test_significant & !reference_significant)))
         false_negative <- c(false_negative, length(which(!test_significant & reference_significant)))
+        discordant <- c(discordant, length(which(test_significant & reference_significant & test_sign!=reference_sign)))
     }
-    
+
     # write results table
-    results <- tibble(method, spread, datatable, matrixnum, scen, true_positive, false_positive, true_negative, false_negative)
+    results <- tibble(method, spread, scen, matrixnum, datatable, true_positive, false_positive, true_negative, false_negative, discordant)
     results <- results %>%
-        mutate(FDR=100*false_positive/(false_positive+true_positive)) %>% 
-        mutate(Recall=100*true_positive/(true_positive+false_negative)) %>% 
-        mutate(Precision=100-FDR) %>% 
-        mutate(Specificity=100*true_negative/(true_negative+false_positive)) %>% 
-        mutate(Accuracy=100*(true_positive+true_negative)/(true_positive+true_negative+false_positive+false_negative))%>%
-        mutate(true_positive_percent=100*true_positive/(true_positive+true_negative+false_positive+false_negative)) %>% 
-        mutate(false_positive_percent=100*false_positive/(true_positive+true_negative+false_positive+false_negative)) %>% 
-        mutate(true_negative_percent=100*true_negative/(true_positive+true_negative+false_positive+false_negative)) %>% 
-        mutate(false_negative_percent=100*false_negative/(true_positive+true_negative+false_positive+false_negative)) %>% 
-        mutate(false_positive_rate=100*false_positive/(true_negative+false_positive)) %>% 
-        dplyr::select(-c(true_positive,true_negative,false_positive,false_negative)) %>% 
-        drop_na()
-    
+        mutate(FDR=100*(false_positive+discordant)/(false_positive+discordant+true_positive)) %>%
+        mutate(Recall=100*true_positive/(true_positive+false_negative+discordant)) %>%
+        mutate(Precision=100-FDR) %>%
+        mutate(Specificity=100*true_negative/(true_negative+false_positive+discordant)) %>%
+        mutate(Accuracy=100*(true_positive+true_negative)/(true_positive+true_negative+false_positive+false_negative+discordant)) %>%
+        mutate(true_positive_percent=100*true_positive/(true_positive+true_negative+false_positive+false_negative+discordant)) %>%
+        mutate(false_positive_percent=100*(false_positive+discordant)/(true_positive+true_negative+false_positive+false_negative+discordant)) %>%
+        mutate(true_negative_percent=100*true_negative/(true_positive+true_negative+false_positive+false_negative+discordant)) %>%
+        mutate(false_negative_percent=100*(false_negative+discordant)/(true_positive+true_negative+false_positive+false_negative+discordant)) %>%
+        mutate(false_positive_rate=100*(discordant+false_positive)/(true_negative+false_positive+discordant)) %>%
+        dplyr::select(-c(true_positive,true_negative,false_positive,false_negative, discordant)) %>%
+        drop_na()    
+
+
     write_tsv(results, paste0("output/taxon_prevalence/statistics_taxontaxon_correlation_", numberofzerostoaccept, ".tsv"), col_names = T)
     
     # define parameters for significance and initialize vectors for the evaluation data (taxon-metadata)
@@ -764,7 +848,8 @@ for(numberofzerostoaccept in c(0.05, 0.1, 0.2, 0.4, 0.5, 0.8)){ # loop over allo
     matrixnum <- c()
     datatable <- c()
     scen <- c()
-    
+    discordant <- c()
+   
     for(file in list.files("data/correlations_taxonmetadata/", recursive = F, pattern = "pvalue", full.names = T)){
         # define file name, method used and reference to be compared against
         filename <- basename(file)
@@ -797,64 +882,65 @@ for(numberofzerostoaccept in c(0.05, 0.1, 0.2, 0.4, 0.5, 0.8)){ # loop over allo
         scen <- c(scen, scenarioname)
         datatable <- c(datatable, "all")
         true_positive <- c(true_positive, length(which(test_significant & reference_significant & test_sign==reference_sign)))
-        false_positive <- c(false_positive, length(which(test_significant & !reference_significant))+length(which(test_significant & reference_significant & test_sign!=reference_sign)))
+        false_positive <- c(false_positive, length(which(test_significant & !reference_significant)))
         true_negative <- c(true_negative, length(which(!test_significant & !reference_significant)))
         false_negative <- c(false_negative, length(which(!test_significant & reference_significant)))
+        discordant <- c(discordant, length(which(test_significant & reference_significant & test_sign!=reference_sign)))
     }
-    
+
     # write results table
-    results <- tibble(method, spread, scen, matrixnum, datatable, true_positive, false_positive, true_negative, false_negative)
+    results <- tibble(method, spread, scen, matrixnum, datatable, true_positive, false_positive, true_negative, false_negative, discordant)
     results <- results %>%
-        mutate(FDR=100*false_positive/(false_positive+true_positive)) %>% 
-        mutate(Recall=100*true_positive/(true_positive+false_negative)) %>% 
-        mutate(Precision=100-FDR) %>% 
-        mutate(Specificity=100*true_negative/(true_negative+false_positive)) %>% 
-        mutate(Accuracy=100*(true_positive+true_negative)/(true_positive+true_negative+false_positive+false_negative)) %>% 
-        mutate(true_positive_percent=100*true_positive/(true_positive+true_negative+false_positive+false_negative)) %>% 
-        mutate(false_positive_percent=100*false_positive/(true_positive+true_negative+false_positive+false_negative)) %>% 
-        mutate(true_negative_percent=100*true_negative/(true_positive+true_negative+false_positive+false_negative)) %>% 
-        mutate(false_negative_percent=100*false_negative/(true_positive+true_negative+false_positive+false_negative)) %>% 
-        mutate(false_positive_rate=100*false_positive/(true_negative+false_positive)) %>% 
-        dplyr::select(-c(true_positive,true_negative,false_positive,false_negative))
-    
+        mutate(FDR=100*(false_positive+discordant)/(false_positive+discordant+true_positive)) %>%
+        mutate(Recall=100*true_positive/(true_positive+false_negative+discordant)) %>%
+        mutate(Precision=100-FDR) %>%
+        mutate(Specificity=100*true_negative/(true_negative+false_positive+discordant)) %>%
+        mutate(Accuracy=100*(true_positive+true_negative)/(true_positive+true_negative+false_positive+false_negative+discordant)) %>%
+        mutate(true_positive_percent=100*true_positive/(true_positive+true_negative+false_positive+false_negative+discordant)) %>%
+        mutate(false_positive_percent=100*(false_positive+discordant)/(true_positive+true_negative+false_positive+false_negative+discordant)) %>%
+        mutate(true_negative_percent=100*true_negative/(true_positive+true_negative+false_positive+false_negative+discordant)) %>%
+        mutate(false_negative_percent=100*(false_negative+discordant)/(true_positive+true_negative+false_positive+false_negative+discordant)) %>%
+        mutate(false_positive_rate=100*(discordant+false_positive)/(true_negative+false_positive+discordant)) %>%
+        dplyr::select(-c(true_positive,true_negative,false_positive,false_negative, discordant)) %>%
+        drop_na()        
+
     write_tsv(results, paste0("output/taxon_prevalence/statistics_taxonmetadata_correlation_", numberofzerostoaccept, ".tsv"), col_names = T)
 }
 
+mycolors <- colorRampPalette(brewer.pal(11, "Spectral"))(13)
 r05 <- read_tsv("output/taxon_prevalence/statistics_taxontaxon_correlation_0.05.tsv")
 r10 <- read_tsv("output/taxon_prevalence/statistics_taxontaxon_correlation_0.1.tsv")
 r20 <- read_tsv("output/taxon_prevalence/statistics_taxontaxon_correlation_0.2.tsv")
 r50 <- read_tsv("output/taxon_prevalence/statistics_taxontaxon_correlation_0.4.tsv")
 r100 <- read_tsv("output/taxon_prevalence/statistics_taxontaxon_correlation_0.5.tsv")
-r500 <- read_tsv("output/taxon_prevalence/statistics_taxontaxon_correlation_0.8.tsv")
 r05 <- r05 %>% mutate(num_samples="95")# convert proportion of zeros accepted to threshold for taxon prevalence
 r10 <- r10 %>% mutate(num_samples="90")
 r20 <- r20 %>% mutate(num_samples="80")
 r50 <- r50 %>% mutate(num_samples="60")
 r100 <- r100 %>% mutate(num_samples="50")
-r500 <- r500 %>% mutate(num_samples="20")
-rr <- bind_rows(r05,r10,r20,r50,r100,r500)
-rr$method <- factor(rr$method, levels=c("AST", "CLR", "RMP", "CSS", "GMPR",
+rr <- bind_rows(r05,r10,r20,r50,r100)
+rr$num_samples <- factor(rr$num_samples)
+rr$scen <- factor(rr$scen, levels=c("Healthy", "Blooming",  "Dysbiosis"))
+rr$method <- factor(rr$method, levels=c("Rel", "Seq", "AST", "CLR", "RMP", "CSS", "GMPR",
                                         "RLE", "TMM", "UQ", "VST",
                                         "QMP", "ACS"))
-rr$num_samples <- factor(rr$num_samples)
-rr$spread <- factor(rr$spread, levels=c("low", "high"))
-rr$scen <- factor(rr$scen, levels=c("Healthy", "Dysbiosis", "Blooming"))
+rr$spread <- factor(rr$spread, levels=c("low", "medium", "high"))
 
 p1 <- ggline(rr %>% dplyr::filter(datatable=="all"), x = "num_samples", y = "Precision", 
-             add = c("mean_sd"),
-             color = "method", palette = "Spectral", facet.by = "scen", 
-             xlab="Taxon prevalence threshold", ylab="Precision [TP/TP+FP]") + theme_bw()
-ggsave(p1, filename="output/taxon_prevalence/plot_zeros_taxontaxon_precision.pdf", device="pdf", width=11, height=3.5)
-p1 <- ggline(rr %>% dplyr::filter(datatable=="all"), x = "num_samples", y = "Recall", 
              add = c("mean_se"),
-             color = "method", palette = "Spectral", facet.by = "scen", 
-             xlab="Taxon prevalence threshold", ylab="Recall [TP/TP+FN]") + theme_bw()
-ggsave(p1, filename="output/taxon_prevalence/plot_zeros_taxontaxon_recall.pdf", device="pdf", width=11, height=3.5)
+             color = "method", palette = mycolors, facet.by = "scen", 
+             xlab="Taxon prevalence threshold", ylab="Precision [TP/TP+FP]") + theme_bw()
+ggsave(p1, filename="output/taxon_prevalence/plot_zeros_taxontaxon_precision.pdf", device="pdf", width=11, height=3.5, useDingbats=F)
+p1 <- ggline(rr %>% dplyr::filter(datatable=="all"), x = "num_samples", y = "Recall",
+             add = c("mean_se"),
+             color = "method", palette = mycolors, facet.by = "scen", 
+             xlab="Taxon prevalence threshold", ylab="Sensitivity [TP/TP+FN]") + theme_bw()
+ggsave(p1, filename="output/taxon_prevalence/plot_zeros_taxontaxon_recall.pdf", device="pdf", width=11, height=3.5, useDingbats=F)
 p1 <- ggline(rr %>% dplyr::filter(datatable=="all"), x = "num_samples", y = "false_positive_rate", 
              add = c("mean_se"),
-             color = "method", palette = "Spectral", facet.by = "scen", 
+             color = "method", palette = mycolors, facet.by = "scen", 
              xlab="Taxon prevalence threshold", ylab="False positive rate [FP/FP+TN]") + theme_bw()
-ggsave(p1, filename="output/taxon_prevalence/plot_zeros_taxontaxon_FPR.pdf", device="pdf", width=11, height=3.5)
+ggsave(p1, filename="output/taxon_prevalence/plot_zeros_taxontaxon_FPR.pdf", device="pdf", width=11, height=3.5, useDingbats=F)
 
 
 
@@ -863,35 +949,33 @@ r10 <- read_tsv("output/taxon_prevalence/statistics_taxonmetadata_correlation_0.
 r20 <- read_tsv("output/taxon_prevalence/statistics_taxonmetadata_correlation_0.2.tsv")
 r50 <- read_tsv("output/taxon_prevalence/statistics_taxonmetadata_correlation_0.4.tsv")
 r100 <- read_tsv("output/taxon_prevalence/statistics_taxonmetadata_correlation_0.5.tsv")
-r500 <- read_tsv("output/taxon_prevalence/statistics_taxonmetadata_correlation_0.8.tsv")
 r05 <- r05 %>% mutate(num_samples="95") # convert proportion of zeros accepted to threshold for taxon prevalence
 r10 <- r10 %>% mutate(num_samples="90")
 r20 <- r20 %>% mutate(num_samples="80")
 r50 <- r50 %>% mutate(num_samples="60")
 r100 <- r100 %>% mutate(num_samples="50")
-r500 <- r500 %>% mutate(num_samples="20")
-rr <- bind_rows(r05,r10,r20,r50,r100,r500)
-rr$method <- factor(rr$method, levels=c("AST", "CLR", "RMP", "CSS", "GMPR",
+rr <- bind_rows(r05,r10,r20,r50,r100)
+rr$num_samples <- factor(rr$num_samples)
+rr$method <- factor(rr$method, levels=c("Rel", "Seq", "AST", "CLR", "RMP", "CSS", "GMPR",
                                         "RLE", "TMM", "UQ", "VST",
                                         "QMP", "ACS"))
-rr$num_samples <- factor(rr$num_samples)
-rr$spread <- factor(rr$spread, levels=c("low", "high"))
-rr$scen <- factor(rr$scen, levels=c("Healthy", "Dysbiosis", "Blooming"))
+rr$spread <- factor(rr$spread, levels=c("low", "medium", "high"))
+rr$scen <- factor(rr$scen, levels=c("Healthy", "Blooming",  "Dysbiosis"))
 
 p1 <- ggline(rr %>% dplyr::filter(datatable=="all"), x = "num_samples", y = "Precision", 
              add = c("mean_se"),
-             color = "method", palette = "Spectral", facet.by = "scen", 
+             color = "method", palette = mycolors, facet.by = "scen", 
              xlab="Taxon prevalence threshold", ylab="Precision [TP/TP+FP]") + theme_bw()
-ggsave(p1, filename="output/taxon_prevalence/plot_zeros_taxonmetadata_precision.pdf", device="pdf", width=11, height=3.5)
+ggsave(p1, filename="output/taxon_prevalence/plot_zeros_taxonmetadata_precision.pdf", device="pdf", width=11, height=3.5, useDingbats=F)
 p1 <- ggline(rr %>% dplyr::filter(datatable=="all"), x = "num_samples", y = "Recall", 
              add = c("mean_se"),
-             color = "method", palette = "Spectral", facet.by = "scen", 
-             xlab="Taxon prevalence threshold", ylab="Recall [TP/TP+FN]") + theme_bw()
-ggsave(p1, filename="output/taxon_prevalence/plot_zeros_taxonmetadata_recall.pdf", device="pdf", width=11, height=3.5)
+             color = "method", palette = mycolors, facet.by = "scen", 
+             xlab="Taxon prevalence threshold", ylab="Sensitivity [TP/TP+FN]") + theme_bw()
+ggsave(p1, filename="output/taxon_prevalence/plot_zeros_taxonmetadata_recall.pdf", device="pdf", width=11, height=3.5, useDingbats=F)
 p1 <- ggline(rr %>% dplyr::filter(datatable=="all"), x = "num_samples", y = "false_positive_rate", 
              add = c("mean_se"),
-             color = "method", palette = "Spectral", facet.by = "scen", 
+             color = "method", palette = mycolors, facet.by = "scen", 
              xlab="Taxon prevalence threshold", ylab="False positive rate [FP/FP+TN]") + theme_bw()
-ggsave(p1, filename="output/taxon_prevalence/plot_zeros_taxonmetadata_FPR.pdf", device="pdf", width=11, height=3.5)
+ggsave(p1, filename="output/taxon_prevalence/plot_zeros_taxonmetadata_FPR.pdf", device="pdf", width=11, height=3.5, useDingbats=F)
 
     

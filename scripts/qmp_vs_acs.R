@@ -125,28 +125,32 @@ for(file in list.files("data/tax_matrices", full.names = T)){
         test_sign_acs_all[is.na(test_sign_acs_all)] <- 1
         reference_sign_all[is.na(reference_sign_all)] <- 1
         
+        
         tpqmp <- length(which(test_significant_qmp_all & reference_significant_all & test_sign_qmp_all==reference_sign_all))
         tpacs <- length(which(test_significant_acs_all & reference_significant_all & test_sign_acs_all==reference_sign_all))
-
-        fpqmp <- length(which(test_significant_qmp_all & !reference_significant_all))+length(which(test_significant_qmp_all & reference_significant_all & test_sign_qmp_all!=reference_sign_all))
-        fpacs <- length(which(test_significant_acs_all & !reference_significant_all))+length(which(test_significant_acs_all & reference_significant_all & test_sign_acs_all!=reference_sign_all))
-
+        
+        daqmp <- length(which(test_significant_qmp_all & reference_significant_all & test_sign_qmp_all!=reference_sign_all))
+        daacs <- length(which(test_significant_acs_all & reference_significant_all & test_sign_acs_all!=reference_sign_all))
+        
+        fpqmp <- length(which(test_significant_qmp_all & !reference_significant_all))
+        fpacs <- length(which(test_significant_acs_all & !reference_significant_all))
+        
         tnqmp <- length(which(!test_significant_qmp_all & !reference_significant_all))
         tnacs <- length(which(!test_significant_acs_all & !reference_significant_all))
-
+        
         fnqmp <- length(which(!test_significant_qmp_all & reference_significant_all))
         fnacs <- length(which(!test_significant_acs_all & reference_significant_all))
-
+        
         fdr_qmp <- c(fdr_qmp, fpqmp/(fpqmp+tpqmp))
         fdr_acs <- c(fdr_acs, fpacs/(fpacs+tpacs))
         spread_v <- c(spread_v, spread_name)
         scenario_v <- c(scenario_v, scenario_name)
-        fp_qmp <- c(fp_qmp, fpqmp/(fpqmp+tnqmp))
-        fp_acs <- c(fp_acs, fpacs/(fpacs+tnacs))
-        tp_qmp <- c(tp_qmp, tpqmp/(tpqmp+fnqmp))
-        tp_acs <- c(tp_acs, tpacs/(tpacs+fnacs))
-        pr_qmp <- c(pr_qmp, tpqmp/(tpqmp+fpqmp))
-        pr_acs <- c(pr_acs, tpacs/(tpacs+fpacs))
+        fp_qmp <- c(fp_qmp, (fpqmp+daqmp)/(fpqmp+tnqmp+daqmp))
+        fp_acs <- c(fp_acs, (fpacs+daacs)/(fpacs+tnacs+daacs))
+        tp_qmp <- c(tp_qmp, tpqmp/(tpqmp+fnqmp+daqmp))
+        tp_acs <- c(tp_acs, tpacs/(tpacs+fnacs+daacs))
+        pr_qmp <- c(pr_qmp, tpqmp/(tpqmp+fpqmp+daqmp))
+        pr_acs <- c(pr_acs, tpacs/(tpacs+fpacs+daacs))
         depths <- c(depths, exp(depth))
         matname <- c(matname, matrix_name)
         valuesused <- c(valuesused, "all")
@@ -174,29 +178,32 @@ for(file in list.files("data/tax_matrices", full.names = T)){
             test_sign_acs[is.na(test_sign_acs)] <- 1
             reference_sign[is.na(reference_sign)] <- 1
             
+            
             tpqmp <- length(which(test_significant_qmp & reference_significant & test_sign_qmp==reference_sign))
             tpacs <- length(which(test_significant_acs & reference_significant & test_sign_acs==reference_sign))
-
-            fpqmp <- length(which(test_significant_qmp & !reference_significant))+length(which(test_significant_qmp & reference_significant & test_sign_qmp!=reference_sign))
-            fpacs <- length(which(test_significant_acs & !reference_significant))+length(which(test_significant_acs & reference_significant & test_sign_acs!=reference_sign))
-
+            
+            daqmp <- length(which(test_significant_qmp & reference_significant & test_sign_qmp!=reference_sign))
+            daacs <- length(which(test_significant_acs & reference_significant & test_sign_acs!=reference_sign))
+            
+            fpqmp <- length(which(test_significant_qmp & !reference_significant))
+            fpacs <- length(which(test_significant_acs & !reference_significant))
+            
             tnqmp <- length(which(!test_significant_qmp & !reference_significant))
             tnacs <- length(which(!test_significant_acs & !reference_significant))
-
+            
             fnqmp <- length(which(!test_significant_qmp & reference_significant))
             fnacs <- length(which(!test_significant_acs & reference_significant))
-
             
             fdr_qmp <- c(fdr_qmp, fpqmp/(fpqmp+tpqmp))
             fdr_acs <- c(fdr_acs, fpacs/(fpacs+tpacs))
             spread_v <- c(spread_v, spread_name)
             scenario_v <- c(scenario_v, scenario_name)
-            fp_qmp <- c(fp_qmp, fpqmp/(fpqmp+tnqmp))
-            fp_acs <- c(fp_acs, fpacs/(fpacs+tnacs))
-            tp_qmp <- c(tp_qmp, tpqmp/(tpqmp+fnqmp))
-            tp_acs <- c(tp_acs, tpacs/(tpacs+fnacs))
-            pr_qmp <- c(pr_qmp, tpqmp/(tpqmp+fpqmp))
-            pr_acs <- c(pr_acs, tpacs/(tpacs+fpacs))
+            fp_qmp <- c(fp_qmp, (fpqmp+daqmp)/(fpqmp+tnqmp+daqmp))
+            fp_acs <- c(fp_acs, (fpacs+daacs)/(fpacs+tnacs+daacs))
+            tp_qmp <- c(tp_qmp, tpqmp/(tpqmp+fnqmp+daqmp))
+            tp_acs <- c(tp_acs, tpacs/(tpacs+fnacs+daacs))
+            pr_qmp <- c(pr_qmp, tpqmp/(tpqmp+fpqmp+daqmp))
+            pr_acs <- c(pr_acs, tpacs/(tpacs+fpacs+daacs))
             depths <- c(depths, exp(depth))
             matname <- c(matname, matrix_name)
             valuesused <- c(valuesused, "invariant")
@@ -225,9 +232,8 @@ resultlong$spread_v <- resultlong$spread_v %>% gsub(., pattern="high", replaceme
 resultlong$spread_v <- factor(resultlong$spread_v, levels=c("Low", "Medium", "High"))
 fprall <- ggline(resultlong, x="depths", y="FPR", color="method", facet.by="spread_v",
        numeric.x.axis = T, add = "mean_se", palette=get_palette("Spectral", k = 11)[c(2,10)], xlab="Sequencing reads", 
-       ylab="FPR [FP/FP+TN]", title = "Taxa-metadata associations - FPR",
+       ylab="FPR [FP/FP+TN]", title = "Taxa-metadata associations - FPR", xscale="log10", .format=T,
        legend.title="Method") + 
-    xscale("log10", .format = TRUE) + 
     theme_bw() + 
     theme(panel.grid.major = element_line(colour = "gray97"), 
           panel.grid.minor = element_line(colour = "gray97")) + 
@@ -254,9 +260,9 @@ resultlong$spread_v <- factor(resultlong$spread_v, levels=c("Low", "Medium", "Hi
 
 precisionall <- ggline(resultlong, x="depths", y="Precision", color="method", facet.by="spread_v",
        numeric.x.axis = T, add = "mean_se", palette=get_palette("Spectral", k = 11)[c(2,10)], xlab="Sequencing reads", 
-       ylab="Precision [TP/TP+FP]", title = "Taxa-metadata associations - Precision",
+       ylab="Precision [TP/TP+FP]", title = "Taxa-metadata associations - Precision",xscale="log10", .format=T,
        legend.title="Method") + 
-    xscale("log10", .format = TRUE) + 
+  
     theme_bw() + 
     theme(panel.grid.major = element_line(colour = "gray97"), 
           panel.grid.minor = element_line(colour = "gray97")) + 
@@ -283,9 +289,8 @@ resultlong$spread_v <- factor(resultlong$spread_v, levels=c("Low", "Medium", "Hi
 
 recallall <- ggline(resultlong, x="depths", y="Recall", color="method", facet.by="spread_v",
        numeric.x.axis = T, add = "mean_se", palette=get_palette("Spectral", k = 11)[c(2,10)], xlab="Sequencing reads", 
-       ylab="Recall [TP/TP+FN]", title = "Taxa-metadata associations - Recall",
+       ylab="Recall [TP/TP+FN]", title = "Taxa-metadata associations - Recall", xscale="log10", .format=T,
        legend.title="Method") + 
-    xscale("log10", .format = TRUE) + 
     theme_bw() + 
     theme(panel.grid.major = element_line(colour = "gray97"), 
           panel.grid.minor = element_line(colour = "gray97")) + 
@@ -301,9 +306,11 @@ ggsave(recallall, file="output/qmp_acs/qmp_vs_acs_alltaxa_recall_metadata.pdf", 
 result <- read_tsv("output/qmp_acs/qmp_vs_acs_taxonmetadata_depths.tsv", col_names=T)
 resultlong <- result %>% 
     dplyr::filter(valuesused=="invariant") %>% 
-    dplyr::filter(scenario_v!="Dysbiosis") %>% 
+   # dplyr::filter(scenario_v!="Dysbiosis") %>% 
     dplyr::select(-c(fdr_qmp, fdr_acs, tp_qmp, tp_acs, pr_qmp, pr_acs, valuesused)) %>% 
     gather(., key = "method", value="FPR", -c(spread_v, scenario_v, depths, matname))
+
+
 
 resultlong$method <- resultlong$method %>% gsub(., pattern="fp_acs", replacement="ACS")
 resultlong$method <- resultlong$method %>% gsub(., pattern="fp_qmp", replacement="QMP")
@@ -314,8 +321,7 @@ resultlong$spread_v <- factor(resultlong$spread_v, levels=c("Low", "Medium", "Hi
 fprinv <- ggline(resultlong, x="depths", y="FPR", color="method", facet.by="spread_v",
        numeric.x.axis = T, add = "mean_se", palette=get_palette("Spectral", k = 11)[c(2,10)], xlab="Sequencing reads", 
        ylab="FPR [FP/FP+TN]", title = "Invariant taxa-metadata associations - FPR",
-       legend.title="Method") + 
-    xscale("log10", .format = TRUE) + 
+       legend.title="Method", xscale="log10", .format=T) + 
     theme_bw() + 
     theme(panel.grid.major = element_line(colour = "gray97"), 
           panel.grid.minor = element_line(colour = "gray97")) + 
@@ -329,7 +335,7 @@ ggsave(fprinv, file="output/qmp_acs/qmp_vs_acs_invtaxa_fdr_metadata.pdf", device
 result <- read_tsv("output/qmp_acs/qmp_vs_acs_taxonmetadata_depths.tsv", col_names=T)
 resultlong <- result %>% 
     dplyr::filter(valuesused=="invariant") %>% 
-    dplyr::filter(scenario_v!="Dysbiosis") %>% 
+    #dplyr::filter(scenario_v!="Dysbiosis") %>% 
     dplyr::select(-c(fdr_qmp, fdr_acs, tp_qmp, tp_acs, fp_qmp, fp_acs, valuesused)) %>% 
     gather(., key = "method", value="Precision", -c(spread_v, scenario_v, depths, matname))
 
@@ -344,8 +350,7 @@ resultlong$spread_v <- factor(resultlong$spread_v, levels=c("Low", "Medium", "Hi
 precisioninv <- ggline(resultlong, x="depths", y="Precision", color="method", facet.by="spread_v",
        numeric.x.axis = T, add = "mean_se", palette=get_palette("Spectral", k = 11)[c(2,10)], xlab="Sequencing reads", 
        ylab="Precision [TP/TP+FP]", title = "Invariant taxa-metadata associations - Precision",
-       legend.title="Method") + 
-    xscale("log10", .format = TRUE) + 
+       legend.title="Method", xscale="log10", .format=T) + 
     theme_bw() + 
     theme(panel.grid.major = element_line(colour = "gray97"), 
           panel.grid.minor = element_line(colour = "gray97")) + 
@@ -359,7 +364,7 @@ ggsave(precisioninv, file="output/qmp_acs/qmp_vs_acs_invtaxa_precision_metadata.
 result <- read_tsv("output/qmp_acs/qmp_vs_acs_taxonmetadata_depths.tsv", col_names=T)
 resultlong <- result %>% 
     dplyr::filter(valuesused=="invariant") %>% 
-    dplyr::filter(scenario_v!="Dysbiosis") %>% 
+    #dplyr::filter(scenario_v!="Dysbiosis") %>% 
     dplyr::select(-c(fdr_qmp, fdr_acs, pr_qmp, pr_acs, fp_qmp, fp_acs,valuesused)) %>% 
     gather(., key = "method", value="Recall", -c(spread_v, scenario_v, depths, matname))
 
@@ -374,8 +379,7 @@ resultlong$spread_v <- factor(resultlong$spread_v, levels=c("Low", "Medium", "Hi
 recallinv <- ggline(resultlong, x="depths", y="Recall", color="method", facet.by="spread_v",
        numeric.x.axis = T, add = "mean_se", palette=get_palette("Spectral", k = 11)[c(2,10)], xlab="Sequencing reads", 
        ylab="Recall [TP/TP+FN]", title = "Invariant taxa-metadata associations - Recall",
-       legend.title="Method") + 
-    xscale("log10", .format = TRUE) + 
+       legend.title="Method", xscale="log10", .format=T) + 
     theme_bw() + 
     theme(panel.grid.major = element_line(colour = "gray97"), 
           panel.grid.minor = element_line(colour = "gray97")) + 
@@ -388,6 +392,6 @@ ggsave(recallinv, file="output/qmp_acs/qmp_vs_acs_invtaxa_recall_metadata.pdf", 
 
 pub_plot <- ggarrange(recallall, fprall, fprinv, ncol=1, nrow=3, labels="auto",legend="right")
 ggsave(pub_plot, file="output/qmp_acs/qmp_vs_acs_summary.pdf", device="pdf", 
-       width=8, height=9)
+       width=8, height=9,useDingbats=FALSE)
 
 

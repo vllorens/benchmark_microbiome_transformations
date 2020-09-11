@@ -4,6 +4,8 @@
 .Ruserdata
 README.html
 data/raw/matrix_stats_3scenarios.tsv
+data/raw/sequencing_stats_3scenarios.tsv
+data/all_matrices/*
 data/tax_matrices/*
 data/seq_matrices/*
 data/rmp_matrices/*
@@ -27,4 +29,5 @@ output/proportionality/*
 output/seq_depth/*
 output/taxon_prevalence/*
 output/proportionality/*
+scripts/extra_plots*
 *._*
