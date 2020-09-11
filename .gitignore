@@ -11,11 +11,13 @@ data/qmp_matrices/*
 data/metadata_matrices/*
 data/acs_matrices/*
 data/correlations_taxontaxon/*
+data/correlations_taxoncounts/*
 data/correlations_taxonmetadata/*
 data/correlations_proportionality/*
 output/*
 output/taxontaxon/*
 output/taxonmetadata/*
+output/taxoncounts/*
 output/alpha_div/*
 output/rawdataplots/*
 output/qmp_qmpnr/*
