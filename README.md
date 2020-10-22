@@ -65,6 +65,9 @@ lapply(packages_github, FUN=function(x){
 
 Each section contains the scripts to generate the tables and panels of the figures from the manuscript, as well as additional tables and figures for further exploration.
 
+It is recommended to run the scripts in R by executing the project file *.Rproj
+
+
 ### 1. Generate data
 
 Run the script **generate_data.R**. In this script, first we obtain individual simulated taxonomy matrices. Three types of populations are simulated:
