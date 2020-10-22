@@ -18,6 +18,49 @@ The different folders and files contained here are:
 * **microbiota_simultions.Rproj**: the R project from which to run all the analyses (for easier portability)
 * **.gitignore**: all the files not to include here
 
+
+## Required software and installation
+
+* **R** (code was developed and tested using R v3.5.1)
+* The following **R packages**:
+
+```
+## Check for package availability and install
+
+## In R:
+
+packages_cran = c("tidyverse", "ggpubr", "ggtext",
+             "rstatix", "ggsignif", "gdata",
+             "BiocManager", "RColorBrewer", "devtools")
+
+packages_bioconductor <- c("phyloseq", "DESeq2", "ALDEx2",
+                         "edgeR", "vegan", "metagenomeSeq")
+                         
+packages_github <- c("CoDaSeq")
+
+## Install packages
+
+lapply(packages_cran, FUN=function(x){
+    if (!requireNamespace(x, quietly = TRUE)){
+        install.packages(x)
+    }
+})
+
+lapply(packages_bioconductor, FUN=function(x){
+    if (!requireNamespace(x, quietly = TRUE)){
+        BiocManager::install(x, update = F, ask=F)
+    }
+})
+
+lapply(packages_github, FUN=function(x){
+    if(!requireNamespace(x, quietly = TRUE)){
+        devtools::install_github(x)
+    }
+})
+
+```
+
+
 ## Steps to reproduce the analyses of the paper
 
 Each section contains the scripts to generate the tables and panels of the figures from the manuscript, as well as additional tables and figures for further exploration.
