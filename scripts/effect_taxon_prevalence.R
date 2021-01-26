@@ -959,7 +959,7 @@ for(numberofzerostoaccept in c(0.05, 0.1, 0.2, 0.4, 0.5)){ # loop over allowed p
 }
 
 #### Assess performance of the methods (taxon-taxon) ####
-mycolors <- palette=inlmisc::GetTolColors(13, scheme = "sunset")
+mycolors <- inlmisc::GetTolColors(13, scheme = "sunset")
 r05 <- read_tsv("output/taxon_prevalence/statistics_taxontaxon_correlation_0.05.tsv")
 r10 <- read_tsv("output/taxon_prevalence/statistics_taxontaxon_correlation_0.1.tsv")
 r20 <- read_tsv("output/taxon_prevalence/statistics_taxontaxon_correlation_0.2.tsv")
@@ -973,9 +973,9 @@ r100 <- r100 %>% mutate(num_samples="50")
 rr <- bind_rows(r05,r10,r20,r50,r100)
 rr$num_samples <- factor(rr$num_samples)
 rr$scen <- factor(rr$scen, levels=c("Healthy", "Blooming",  "Dysbiosis"))
-rr$method <- factor(rr$method, levels=c("Rel", "Seq", "AST", "CLR", "RMP", "CSS", "GMPR",
+rr$method <- factor(rr$method, levels=c("Seq", "Rel", "AST", "CLR", "RMP", "CSS", "GMPR",
                                         "RLE", "TMM", "UQ", "VST",
-                                        "QMP", "ACS"))
+                                        "ACS", "QMP"))
 rr$spread <- factor(rr$spread, levels=c("low", "medium", "high"))
 
 p1 <- ggline(rr %>% dplyr::filter(datatable=="all"), x = "num_samples", y = "Precision", 
@@ -1008,9 +1008,9 @@ r50 <- r50 %>% mutate(num_samples="60")
 r100 <- r100 %>% mutate(num_samples="50")
 rr <- bind_rows(r05,r10,r20,r50,r100)
 rr$num_samples <- factor(rr$num_samples)
-rr$method <- factor(rr$method, levels=c("Rel", "Seq", "AST", "CLR", "RMP", "CSS", "GMPR",
+rr$method <- factor(rr$method, levels=c("Seq", "Rel", "AST", "CLR", "RMP", "CSS", "GMPR",
                                         "RLE", "TMM", "UQ", "VST",
-                                        "QMP", "ACS"))
+                                        "ACS", "QMP"))
 rr$spread <- factor(rr$spread, levels=c("low", "medium", "high"))
 rr$scen <- factor(rr$scen, levels=c("Healthy", "Blooming",  "Dysbiosis"))
 

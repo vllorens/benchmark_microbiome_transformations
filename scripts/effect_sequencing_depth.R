@@ -965,7 +965,7 @@ results <- results %>%
 
 
 #### Assess performance of the methods across different sample numbers (taxon-taxon) ####
-mycolors <- palette=inlmisc::GetTolColors(13, scheme = "sunset")
+mycolors <- inlmisc::GetTolColors(13, scheme = "sunset")
 r05 <- read_tsv("output/seq_depth/statistics_taxontaxon_correlation_9.9.tsv")
 r10 <- read_tsv("output/seq_depth/statistics_taxontaxon_correlation_10.3.tsv")
 r20 <- read_tsv("output/seq_depth/statistics_taxontaxon_correlation_10.81.tsv")
@@ -979,9 +979,9 @@ r50 <- r50 %>% mutate(num_samples="100000")
 r100 <- r100 %>% mutate(num_samples="200000")
 r500 <- r500 %>% mutate(num_samples="500000")
 rr <- bind_rows(r05,r10,r20,r50,r100,r500)
-rr$method <- factor(rr$method, levels=c("Rel", "Seq", "AST", "CLR", "RMP", "CSS", "GMPR",
+rr$method <- factor(rr$method, levels=c("Seq", "Rel", "AST", "CLR", "RMP", "CSS", "GMPR",
                                         "RLE", "TMM", "UQ", "VST",
-                                        "QMP", "ACS"))
+                                        "ACS", "QMP"))
 rr$num_samples <- factor(rr$num_samples, levels=c("20000", "30000", "50000", "100000", "200000", 
                                                   "500000"))
 rr$spread <- factor(rr$spread, levels=c("low", "medium", "high"))
@@ -1018,9 +1018,9 @@ r50 <- r50 %>% mutate(num_samples="100000")
 r100 <- r100 %>% mutate(num_samples="200000")
 r500 <- r500 %>% mutate(num_samples="500000")
 rr <- bind_rows(r05,r10,r20,r50,r100,r500)
-rr$method <- factor(rr$method, levels=c("Rel", "Seq", "AST", "CLR", "RMP", "CSS", "GMPR",
+rr$method <- factor(rr$method, levels=c("Seq", "Rel", "AST", "CLR", "RMP", "CSS", "GMPR",
                                         "RLE", "TMM", "UQ", "VST",
-                                        "QMP", "ACS"))
+                                        "ACS", "QMP"))
 rr$num_samples <- factor(rr$num_samples, levels=c("20000", "30000", "50000", "100000", "200000",
                                                   "500000"))
 rr$spread <- factor(rr$spread, levels=c("low", "medium", "high"))

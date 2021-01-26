@@ -960,7 +960,7 @@ for(numberofsamplestomake in c(20,50,100,200,500,1000)){
 
 
 #### Assess performance of the methods across different sample numbers (taxon-taxon) ####
-mycolors <- palette=inlmisc::GetTolColors(13, scheme = "sunset")
+mycolors <- inlmisc::GetTolColors(13, scheme = "sunset")
 r20 <- read_tsv("output/number_samples/statistics_taxontaxon_correlation_20.tsv")
 r50 <- read_tsv("output/number_samples/statistics_taxontaxon_correlation_50.tsv")
 r100 <- read_tsv("output/number_samples/statistics_taxontaxon_correlation_100.tsv")
@@ -975,9 +975,9 @@ r500 <- r500 %>% mutate(num_samples="500")
 r1000 <- r1000 %>% mutate(num_samples="1000")
 rr <- bind_rows(r20,r50,r100,r200,r500,r1000)
 
-rr$method <- factor(rr$method, levels=c("Rel", "Seq", "AST", "CLR", "RMP", "CSS", "GMPR",
+rr$method <- factor(rr$method, levels=c("Seq", "Rel", "AST", "CLR", "RMP", "CSS", "GMPR",
                                         "RLE", "TMM", "UQ", "VST",
-                                        "QMP", "ACS"))
+                                        "ACS", "QMP"))
 rr$spread <- factor(rr$spread, levels=c("low", "medium", "high"))
 rr$scen <- factor(rr$scen, levels=c("Healthy", "Blooming", "Dysbiosis"))
 
@@ -1002,7 +1002,7 @@ ggsave(p1, filename="output/number_samples/plot_samplesize_taxontaxon_FPR.pdf", 
 
 
 #### Assess performance of the methods across different sample numbers (taxon-metadata) ####
-mycolors <- palette=inlmisc::GetTolColors(13, scheme = "sunset")
+mycolors <- inlmisc::GetTolColors(13, scheme = "sunset")
 r20 <- read_tsv("output/number_samples/statistics_taxonmetadata_correlation_20.tsv")
 r50 <- read_tsv("output/number_samples/statistics_taxonmetadata_correlation_50.tsv")
 r100 <- read_tsv("output/number_samples/statistics_taxonmetadata_correlation_100.tsv")
@@ -1017,9 +1017,9 @@ r500 <- r500 %>% mutate(num_samples="500")
 r1000 <- r1000 %>% mutate(num_samples="1000")
 rr <- bind_rows(r20,r50,r100,r200,r500,r1000)
 
-rr$method <- factor(rr$method, levels=c("Rel", "Seq", "AST", "CLR", "RMP", "CSS", "GMPR",
+rr$method <- factor(rr$method, levels=c("Seq", "Rel", "AST", "CLR", "RMP", "CSS", "GMPR",
                                         "RLE", "TMM", "UQ", "VST",
-                                        "QMP", "ACS"))
+                                        "ACS", "QMP"))
 rr$spread <- factor(rr$spread, levels=c("low", "medium", "high"))
 rr$scen <- factor(rr$scen, levels=c("Healthy",  "Blooming", "Dysbiosis"))
 
