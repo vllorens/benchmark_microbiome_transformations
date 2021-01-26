@@ -25,7 +25,9 @@ plot_comparisons <- function(dunn, title=NULL){
 
     
     ggcorrmod(dunn_effsize, method = "square", type = "upper", 
-                           colors = c("#6D9EC1", "white", "#E46726"), p.mat=dunn_adj, 
+              colors = c("#354B99", "white", "#A50026"),
+            #  colors = c("#6D9EC1", "white", "#E46726"), 
+              p.mat=dunn_adj, 
                            legend.title = "Effect size", outline.color = "black",
                            insig="blank",  ggtheme = theme_void(), title=title) + 
         ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, 

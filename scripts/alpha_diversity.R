@@ -18,6 +18,7 @@ suppressPackageStartupMessages(library(edgeR))
 suppressPackageStartupMessages(library(DESeq2))
 suppressPackageStartupMessages(library(ggtext))
 suppressPackageStartupMessages(library(rstatix))
+suppressPackageStartupMessages(library(inlmisc))
 
 # load functions
 source("R/GMPR.R")
@@ -33,6 +34,7 @@ system("mkdir -p output/alpha_div")
 system("rm -r output/alpha_div/*")
 
 set.seed(777)
+
 
 #### Calculate alpha diversity ####
 richness_counts_all <- tibble()
@@ -294,7 +296,7 @@ for(mat in unique(richness_counts_all_2$matrix)){
 }
 
 method_type <- tibble(method=c("Seq", "RMP", "CSS", "GMPR",
-                               "UQ", "RLE", "TMM","QMP", "ACS"),
+                               "UQ", "RLE", "TMM", "ACS", "QMP"),
                       method_type=c("Sequencing", "Relative transformations", 
                                     rep("Compositional transformations", times=5),
                                     rep("Quantitative transformations", times=2)))
@@ -303,7 +305,7 @@ fit_summary <- fit_summary %>%
 
 fit_summary$method <- factor(fit_summary$method, 
                                      levels=c("Seq", "RMP", "CSS", "GMPR",
-                                              "UQ", "RLE", "TMM", "QMP", "ACS"))
+                                              "UQ", "RLE", "TMM", "ACS", "QMP"))
 fit_summary$method_type <- factor(fit_summary$method_type, 
                              levels=c("Sequencing", "Relative transformations", 
                                       "Compositional transformations",
@@ -352,8 +354,10 @@ toplot$correlation_category <- factor(toplot$correlation_category,
                                                "Negative correlation (R<0)"))
 
 fig2a <- ggbarplot(toplot %>% dplyr::filter(Diversity_index=="Observed"), 
-                   x="method", y="percentage", fill="correlation_category", palette="Dark2",
-                   title="Observed richness: correlation between transformed and real values",
+                   x="method", y="percentage", color="white", 
+                   fill="correlation_category", 
+                   palette=rev(inlmisc::GetTolColors(5, scheme = "sunset")), 
+                   title="Observed richness: correlation between transformed values and synthetic communities",
                    legend.title="Correlation category", xlab="Method",
                    ylab="Percentage",
                    facet.by="scenario")+
@@ -390,7 +394,7 @@ richness_counts_all_2 <- richness_counts_all_2 %>%
 
 richness_counts_all_2$method <- factor(richness_counts_all_2$method, 
                                        levels=c("Seq", "RMP", "CSS", "GMPR",
-                                                "UQ", "RLE", "TMM", "QMP", "ACS"))
+                                                "UQ", "RLE", "TMM", "ACS", "QMP"))
 richness_counts_all_2$method_type <- factor(richness_counts_all_2$method_type, 
                                             levels=c("Sequencing", "Relative transformations", 
                                                      "Compositional transformations",
@@ -426,7 +430,7 @@ richness_dysbiosis_real$mat <- factor(richness_dysbiosis_real$mat,
 
 pdf("output/alpha_div/richness_healthy_vs_dysbiotic.pdf", height=6, width=9)
 ggboxplot(richness_dysbiosis_real, x = "cat", y="Observed", facet.by="mat", nrow=2, fill="cat", 
-          palette="Dark2",
+          palette=inlmisc::GetTolColors(2, scheme = "sunset"),
           title="Richness in healthy vs dysbiotic samples", legend="right", legend.title="Category",
           xlab="Category", ylab="Observed richness", ylim=c(150,320)) + 
     theme_bw() + 
@@ -441,8 +445,8 @@ dev.off()
 pdf("output/alpha_div/plots_diversity_correlation_slope_rsquared.pdf", height=8, width=11)
 ggerrorplot(fit_summary, x="method", y="rho", color="method_type",  scales="free_y",
                      facet.by = c("Diversity_index", "scenario"), desc_stat="mean_ci", size=0.3,
-                     fill="method_type", 
-                     error.plot = "pointrange", palette="Dark2", legend.title="Method type",
+                     fill="method_type", palette=inlmisc::GetTolColors(4, scheme = "sunset"),
+                     error.plot = "pointrange",legend.title="Method type",
                      title="Pearson correlation coefficient: Method alpha diversity vs Real alpha diversity") + 
     theme_bw() + stat_compare_means(label.x = 3, label.y.npc = "bottom") + 
     geom_hline(yintercept = 1) + rotate_x_text(45) +
@@ -456,8 +460,8 @@ ggerrorplot(fit_summary, x="method", y="rho", color="method_type",  scales="free
 
 ggerrorplot(fit_summary, x="method", y="rsq", color="method_type",  scales="free_y",
             facet.by = c("Diversity_index", "scenario"), desc_stat="mean_ci", size=0.3,
-            fill="method_type", 
-            error.plot = "pointrange", palette="Dark2", legend.title="Method type",
+            fill="method_type",  palette=inlmisc::GetTolColors(4, scheme = "sunset"),
+            error.plot = "pointrange",legend.title="Method type",
             title="R-squared value of the fit: Method alpha diversity vs Real alpha diversity") + 
     theme_bw() + stat_compare_means(label.x = 3, label.y.npc = "bottom") + 
     geom_hline(yintercept = 1) + rotate_x_text(45) +
@@ -470,8 +474,8 @@ ggerrorplot(fit_summary, x="method", y="rsq", color="method_type",  scales="free
 
 ggerrorplot(fit_summary, x="method", y="fit", color="method_type",  scales="free_y",
             facet.by = c("Diversity_index", "scenario"), desc_stat="mean_ci", size=0.3,
-            fill="method_type", 
-            error.plot = "pointrange", palette="Dark2", legend.title="Method type",
+            fill="method_type",  palette=inlmisc::GetTolColors(4, scheme = "sunset"),
+            error.plot = "pointrange", legend.title="Method type",
             title="Slope of the fit: Method alpha diversity vs Real alpha diversity") + 
     theme_bw() + stat_compare_means(label.x = 3, label.y.npc = "bottom") +
     geom_hline(yintercept = 1) + rotate_x_text(45) +
@@ -487,7 +491,9 @@ dev.off()
 
 ## summary chao1
 p1 <- ggbarplot(toplot %>% dplyr::filter(Diversity_index=="Chao1"), 
-                x="method", y="percentage", fill="correlation_category", palette="Dark2",
+                x="method", y="percentage", fill="correlation_category", 
+                color="white",
+                palette=rev(inlmisc::GetTolColors(5, scheme = "sunset")),
                 title="Chao1 richness: correlation between transformed and real values",
                 legend.title="Correlation category", xlab="Method",
                 ylab="Percentage",
@@ -517,7 +523,9 @@ ggsave(plot_fin, filename = "output/alpha_div/correlation_chao1_richness_real_tr
 
 ## summary simpson
 p1 <- ggbarplot(toplot %>% dplyr::filter(Diversity_index=="Simpson"), 
-                x="method", y="percentage", fill="correlation_category", palette="Dark2",
+                x="method", y="percentage", fill="correlation_category", 
+                color="white",
+                palette=rev(inlmisc::GetTolColors(5, scheme = "sunset")),
                 title="Simpson diversity: correlation between transformed and real values",
                 legend.title="Correlation category", xlab="Method",
                 ylab="Percentage",
@@ -546,7 +554,9 @@ ggsave(plot_fin, filename = "output/alpha_div/correlation_simpson_diversity_real
 
 ## summary shannon
 p1 <- ggbarplot(toplot %>% dplyr::filter(Diversity_index=="Shannon"), 
-                x="method", y="percentage", fill="correlation_category", palette="Dark2",
+                x="method", y="percentage", fill="correlation_category", 
+                color="white",
+                palette=rev(inlmisc::GetTolColors(5, scheme = "sunset")),
                 title="Shannon diversity: correlation between transformed and real values",
                 legend.title="Correlation category", xlab="Method",
                 ylab="Percentage",
@@ -576,7 +586,7 @@ ggsave(plot_fin, filename = "output/alpha_div/correlation_shannon_diversity_real
 
 ## observed richness vs microbial load - example
 method_type <- tibble(method=c("Real", "Seq", "RMP", "CSS", "GMPR",
-                               "UQ", "RLE", "TMM","QMP", "ACS"),
+                               "UQ", "RLE", "TMM", "ACS", "QMP"),
                       method_type=c("No transformation", "Sequencing", 
                                     "Traditional transformations", 
                                     rep("Compositional transformations", times=5),
@@ -591,7 +601,7 @@ richness_counts_all$scenario <- factor(richness_counts_all$scenario,
                                        levels=c("Healthy", "Blooming", "Dysbiosis"))
 richness_counts_all$method <- factor(richness_counts_all$method, 
                                      levels=c("Real", "Seq", "RMP", "CSS", "GMPR",
-                                              "UQ", "RLE", "TMM", "QMP", "ACS"))
+                                              "UQ", "RLE", "TMM", "ACS", "QMP"))
 richness_counts_all$matrix <- factor(richness_counts_all$matrix, 
                                      levels=c("S1", "S2", "S3", "S4", "S5", "S6",
                                               "S7", "S8", "S9", "S10",
@@ -641,11 +651,13 @@ toplot$correlation_category <- factor(toplot$correlation_category,
                                                "Negative correlation (R<0)"))
 
 toplot$method <- factor(toplot$method, levels=c("Real", "Seq", "RMP", "CSS", "GMPR",
-                                               "UQ", "RLE", "TMM", "QMP", "ACS"))
+                                               "UQ", "RLE", "TMM", "ACS", "QMP"))
 
 
 ps1 <- ggbarplot(toplot, 
-          x="method", y="percentage", fill="correlation_category", palette="Dark2",
+          x="method", y="percentage", fill="correlation_category", 
+          color="white",
+          palette=rev(inlmisc::GetTolColors(5, scheme = "sunset"))[2:5],
           title="Correlation between alpha diversity and microbial loads in real and transformed data",
           legend.title="Correlation category", xlab="Real data | Transformation method",
           ylab="Percentage",
@@ -669,7 +681,8 @@ richness_example$matrix <- factor(richness_example$matrix, levels=c("Matrix S1 (
 ggscatter(richness_example, 
                 x="counts", y="Value", group="matrix", facet.by=c("matrix", "method"),
                 fill="method_type", alpha=0.5, shape=21, color="black",
-                title="Observed richness vs sampling depth", palette="Dark2",
+                title="Observed richness vs sampling depth", 
+                palette=(inlmisc::GetTolColors(4, scheme = "sunset")),
                 ylab="Observed richness", xlab="Cell densities", legend.title="Method type",
                 add = "reg", add.params = list(color = "method_type")) + 
           xscale("log10") + 

@@ -10,6 +10,7 @@ data/tax_matrices/*
 data/seq_matrices/*
 data/rmp_matrices/*
 data/qmp_matrices/*
+data/counts_estimated/*
 data/metadata_matrices/*
 data/acs_matrices/*
 data/correlations_taxontaxon/*

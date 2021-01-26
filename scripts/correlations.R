@@ -42,6 +42,7 @@ suppressPackageStartupMessages(library(ggsignif))
 suppressPackageStartupMessages(library(metagenomeSeq))
 suppressPackageStartupMessages(library(edgeR))
 suppressPackageStartupMessages(library(rstatix))
+suppressPackageStartupMessages(library(inlmisc))
 
 # load functions
 source("R/estimateZeros.R")
@@ -275,7 +276,7 @@ for(file in list.files("data/seq_matrices", full.names = T)){
     tax_matrix <- tax_matrix[taxa_to_keep,]
     # transform data
     tax_matrix <- t(zCompositions::cmultRepl(X = t(tax_matrix), output="p-counts")) # estimates zeros
-    tax_matrix <- t(codaSeq.clr(tax_matrix, samples.by.row=F))
+    tax_matrix <- codaSeq.clr(tax_matrix, samples.by.row=F)
     # read metadata file
     filename_metadata <- gsub(filename, pattern="seqOut_", replacement="")
     metadata_matrix <- read.table(paste0("data/metadata_matrices/metadata_", filename_metadata))
@@ -1119,8 +1120,8 @@ results$method_type <- factor(results$method_type,
                               levels=c("Sequencing - non-transformed", "Traditional transformations", 
                                        "Compositional transformations",
                                        "Transformations incorporating microbial loads"))
-results$method <- factor(results$method, levels=c("Seq", "RMP", "Rel","AST", "CLR", "CSS", "GMPR",
-                                                  "UQ", "RLE", "TMM", "VST", "QMP", "ACS"))
+results$method <- factor(results$method, levels=c("Seq", "Rel", "RMP","AST", "CLR", "CSS", "GMPR",
+                                                  "UQ", "RLE", "TMM", "VST", "ACS", "QMP"))
 
 results$spread <- factor(results$spread, levels=c("low", "medium", "high"))
 results$scen <- factor(results$scen, levels=c("Healthy", "Blooming","Dysbiosis"))
@@ -1139,7 +1140,9 @@ toplot <- results_all %>%
 
 toplot$metric <- factor(toplot$metric, levels=c("TP", "FP", "TN", "FN", "DA"))
 
-p1 <- ggbarplot(toplot, x="method", y="value", fill="metric", facet.by="scen", palette="Dark2",
+p1 <- ggbarplot(toplot, x="method", y="value", fill="metric", facet.by="scen", 
+                palette=rev(inlmisc::GetTolColors(5, scheme = "sunset")),
+                color="white",
           legend.title="Metric", title="Associations of transformed taxon abundances with original microbial loads",
           xlab="Method", ylab="Percentage") +
     theme_bw()+ rotate_x_text(45) +
@@ -1169,7 +1172,9 @@ toplot2 <- results_all %>%
 
 toplot2$metric <- factor(toplot2$metric, levels=c("FP_scaled", "DA_scaled", "TP_scaled"))
 
-p1b <- ggbarplot(toplot2, x="method", y="value", fill="metric", facet.by="scen", palette="Dark2", 
+p1b <- ggbarplot(toplot2, x="method", y="value", fill="metric", facet.by="scen", 
+                 palette=rev(inlmisc::GetTolColors(5, scheme = "sunset"))[c(1:2,4)],
+                 color="white",
                  subtitle="True Positives, False Positives and Discordant Associations scaled to the total actual positives (100%)",
                 legend.title="Metric", title="Associations of transformed taxon abundances with original microbial loads",
                 xlab="Method", ylab="Percentage") +
@@ -1254,7 +1259,9 @@ toplot <- results_class %>%
 toplot$metric <- factor(toplot$metric, levels=c("TP", "FP", "TN", "FN", "DA"))
 toplot$datatable <- factor(toplot$datatable, levels=c("positive", "negative", "non_correlated"))
 
-p2 <- ggbarplot(toplot, x="method", y="value", fill="metric", facet.by=c("datatable", "scen"), palette="Dark2",
+p2 <- ggbarplot(toplot, x="method", y="value", fill="metric", facet.by=c("datatable", "scen"), 
+                palette=rev(inlmisc::GetTolColors(5, scheme = "sunset")),
+                color="white",
                 legend.title="Metric", title="Associations of transformed taxon abundances with original microbial loads (classified by association type)",
                 xlab="Method", ylab="Percentage") +
     theme_bw()+ rotate_x_text(45) +
@@ -1290,7 +1297,9 @@ toplot2 <- results_class %>%
 toplot2$metric <- factor(toplot2$metric, levels=c("FP_scaled", "DA_scaled", "TP_scaled"))
 toplot2$datatable <- factor(toplot2$datatable, levels=c("positive", "negative", "non_correlated"))
 
-p2b <- ggbarplot(toplot2, x="method", y="value", fill="metric", facet.by=c("datatable", "scen"), palette="Dark2", 
+p2b <- ggbarplot(toplot2, x="method", y="value", fill="metric", facet.by=c("datatable", "scen"), 
+                 palette=rev(inlmisc::GetTolColors(5, scheme = "sunset"))[c(1:2,4)],
+                 color="white",
                  subtitle="True Positives, False Positives and Discordant Associations scaled to the total actual positives (100%)",
                  legend.title="Metric", title="Associations of transformed taxon abundances with original microbial loads",
                  xlab="Method", ylab="Percentage") +
@@ -1478,8 +1487,8 @@ results$method_type <- factor(results$method_type,
                               levels=c("Sequencing - non-transformed", "Relative transformations", 
                                        "Compositional transformations",
                                        "Quantitative transformations"))
-results$method <- factor(results$method, levels=c("Seq", "RMP", "Rel","AST", "CLR", "CSS", "GMPR",
-                                                  "UQ", "RLE", "TMM", "VST", "QMP", "ACS"))
+results$method <- factor(results$method, levels=c("Seq", "Rel", "RMP","AST", "CLR", "CSS", "GMPR",
+                                                  "UQ", "RLE", "TMM", "VST", "ACS", "QMP"))
 
 results$spread <- factor(results$spread, levels=c("low", "medium", "high"))
 results$scen <- factor(results$scen, levels=c("Healthy", "Blooming","Dysbiosis"))
@@ -1499,7 +1508,9 @@ toplot <- results_all %>%
 toplot$metric <- factor(toplot$metric, levels=c("TP", "FP", "TN", "FN", "DA"))
 toplot$specialtaxon <- factor(toplot$specialtaxon, levels=c("Bloomer", "Opportunist", "Unresponsive"))
 
-p3 <- ggbarplot(toplot, x="method", y="value", fill="metric", facet.by=c("specialtaxon"), palette="Dark2",
+p3 <- ggbarplot(toplot, x="method", y="value", fill="metric", facet.by=c("specialtaxon"), 
+                palette=rev(inlmisc::GetTolColors(5, scheme = "sunset")),
+                color="white",
                 legend.title="Metric", title="Associations of transformed taxon abundances with original microbial loads (special taxa)",
                 xlab="Method", ylab="Percentage") +
     theme_bw()+ rotate_x_text(45) +
@@ -1514,22 +1525,22 @@ ggsave(p3, filename = "output/taxoncounts/specialtaxon/plot_performance_taxoncou
 
 
 
-# now only scaled to the number of positives in the samples
+# now only scaled to the number of special taxa
 stats_matrix <- read_tsv("data/raw/matrix_stats_3scenarios.tsv", col_names=T)
-actual_positives <- read_tsv("output/taxoncounts/statistics_taxoncounts_correlation.tsv") %>% 
+special_taxa <- read_tsv("output/taxoncounts/specialtaxon/statistics_taxoncounts_correlation_onlyspecialtaxa.tsv") %>% #statistics_taxoncounts_correlation.tsv") %>% 
     dplyr::filter(datatable=="all") %>% 
-    mutate(actual_positives=true_positive+false_negative+discordant) %>% 
-    dplyr::select(method, matrixnum, actual_positives) %>% 
+    mutate(special_taxa_num=true_positive+false_positive+true_negative+false_negative+discordant) %>% 
+    dplyr::select(method, matrixnum, special_taxa_num, specialtaxon) %>% 
     distinct()
 
 results_all <- results_all %>% 
-    left_join(actual_positives, by=c("method", "matrixnum"))
+    left_join(special_taxa, by=c("method", "matrixnum", "specialtaxon"))
 
 toplot <- results_all %>% 
     left_join(stats_matrix, by=c("matrixnum" = "matrix", "scen" = "scenario", "specialtaxon" = "special_taxon")) %>% 
-    mutate(TP_scaled=100*true_positive/(actual_positives)) %>% 
-    mutate(FP_scaled=100*false_positive/(actual_positives)) %>% 
-    mutate(DA_scaled=100*discordant/(actual_positives)) %>% 
+    mutate(TP_scaled=100*true_positive/(special_taxa_num)) %>% 
+    mutate(FP_scaled=100*false_positive/(special_taxa_num)) %>% 
+    mutate(DA_scaled=100*discordant/(special_taxa_num)) %>% 
     dplyr::select(method, specialtaxon, method_type, TP_scaled, FP_scaled, DA_scaled, datatable) %>%
     drop_na() %>% 
     gather(key="metric", value="value", -method, -specialtaxon, -method_type, -datatable) %>% 
@@ -1540,10 +1551,12 @@ toplot <- results_all %>%
 
 toplot$metric <- factor(toplot$metric, levels=c("FP_scaled", "DA_scaled", "TP_scaled"))
 toplot$specialtaxon <- factor(toplot$specialtaxon, levels=c("Bloomer", "Opportunist", "Unresponsive"))
-toplot$method <- factor(toplot$method, levels=c("Seq", "RMP", "Rel","AST", "CLR", "CSS", "GMPR",
-                                                "UQ", "RLE", "TMM", "VST", "QMP", "ACS"))
+toplot$method <- factor(toplot$method, levels=c("Seq", "Rel", "RMP","AST", "CLR", "CSS", "GMPR",
+                                                "UQ", "RLE", "TMM", "VST", "ACS", "QMP"))
 
-p3b <- ggbarplot(toplot, x="method", y="value", fill="metric", facet.by=c("specialtaxon"), palette="Dark2",
+p3b <- ggbarplot(toplot, x="method", y="value", fill="metric", facet.by=c("specialtaxon"), 
+                 palette=rev(inlmisc::GetTolColors(5, scheme = "sunset"))[c(1:2,4)],
+                 color="white",
                 subtitle="True Positives, False Positives and Discordant Associations, scaled to the number of true associations",
                 legend.title="Metric", title="Associations of transformed taxon abundances with original microbial loads (special taxa)",
                 xlab="Method", ylab="Percentage") +
@@ -1553,7 +1566,8 @@ p3b <- ggbarplot(toplot, x="method", y="value", fill="metric", facet.by=c("speci
     theme(axis.title = element_text(face = "bold"), 
           plot.title = element_text(size = 14, 
                                     face = "bold"), 
-          legend.title = element_text(face = "bold"))
+          legend.title = element_text(face = "bold"))+
+    geom_hline(yintercept = 100, col="black", lwd=1)
 
 ggsave(p3b, filename = "output/taxoncounts/specialtaxon/plot_performance_taxoncounts_special_scaledpositives.pdf", device = "pdf", width = 8, height=3.5, useDingbats=FALSE)
 
@@ -1603,14 +1617,16 @@ results$method_type <- factor(results$method_type,
                               levels=c("Sequencing - non-transformed", "Relative transformations", 
                                        "Compositional transformations",
                                        "Quantitative transformations"))
-results$method <- factor(results$method, levels=c("Seq", "RMP", "Rel","AST", "CLR", "CSS", "GMPR",
-                                                  "UQ", "RLE", "TMM", "VST", "QMP", "ACS"))
+results$method <- factor(results$method, levels=c("Seq", "Rel", "RMP","AST", "CLR", "CSS", "GMPR",
+                                                  "UQ", "RLE", "TMM", "VST", "ACS", "QMP"))
 
 results$spread <- factor(results$spread, levels=c("low", "medium", "high"))
 results$scen <- factor(results$scen, levels=c("Healthy", "Blooming","Dysbiosis"))
 
 p1 <- ggboxplot(results, x="method", y="correlation", fill="method_type", 
-          facet.by="scen", palette="Dark2", ylab="R", xlab="Method", 
+          facet.by="scen", 
+          palette=rev(inlmisc::GetTolColors(4, scheme = "sunset")),
+          ylab="R", xlab="Method", 
           title="Correlation between raw and transformed taxa abundances", legend.title="Method type") +
     theme_bw()+ rotate_x_text(45) +
     theme(panel.grid.major = element_line(colour = "gray97"), 
@@ -1669,7 +1685,9 @@ results_table$category <- factor(results_table$category,  levels=c("High correla
 results_table$scen <- factor(results_table$scen, levels=c("Healthy", "Blooming","Dysbiosis"))
 
 p2 <- ggbarplot(results_table, x="method", y="n", fill="category", facet.by="scen",
-          palette="Dark2", title="Classification of transformed taxa according to their correlation with the raw values",
+                palette=rev(inlmisc::GetTolColors(5, scheme = "sunset")),
+                color="white",
+             title="Classification of transformed taxa according to their correlation with the raw values",
           legend.title="Category", ylab="Percentage of taxa (average per method)", xlab="Method") +
     theme_bw()+ rotate_x_text(45) +
     theme(panel.grid.major = element_line(colour = "gray97"), 
@@ -1715,7 +1733,9 @@ results_special <- results %>%
     dplyr::filter(special_taxa!="none")
 
 p3 <- ggboxplot(results_special, x="method", y="correlation", fill="method_type", 
-                facet.by="special_taxa", palette="Dark2", ylab="R", xlab="Method", 
+                facet.by="special_taxa", 
+                palette=rev(inlmisc::GetTolColors(4, scheme = "sunset")),
+                ylab="R", xlab="Method", 
                 title="Correlation between raw and transformed taxa abundances", legend.title="Method type") +
     theme_bw()+ rotate_x_text(45) +
     theme(panel.grid.major = element_line(colour = "gray97"), 
@@ -1921,8 +1941,8 @@ results$method_type <- factor(results$method_type,
                                   levels=c("Sequencing - non-transformed", "Traditional transformations", 
                                            "Compositional transformations",
                                            "Transformations incorporating microbial loads"))
-results$method <- factor(results$method, levels=c("Seq", "RMP", "Rel","AST", "CLR", "CSS", "GMPR",
-                                                  "UQ", "RLE", "TMM", "VST", "QMP", "ACS"))
+results$method <- factor(results$method, levels=c("Seq", "Rel", "RMP","AST", "CLR", "CSS", "GMPR",
+                                                  "UQ", "RLE", "TMM", "VST", "ACS", "QMP"))
 
 results$spread <- factor(results$spread, levels=c("low", "medium", "high"))
 results$scen <- factor(results$scen, levels=c("Healthy", "Blooming","Dysbiosis"))
@@ -1941,8 +1961,10 @@ toplot <- results_all %>%
 
 toplot$metric <- factor(toplot$metric, levels=c("TP", "TPD", "FP", "TN", "FN", "DA"))
 
-p1 <- ggbarplot(toplot, x="method", y="value", fill="metric", facet.by="scen", palette="Dark2",
+p1 <- ggbarplot(toplot, x="method", y="value", fill="metric", facet.by="scen", 
+                palette=rev(inlmisc::GetTolColors(6, scheme = "sunset")),
                 legend.title="Metric", title="Taxon-taxon associations",
+                color="white",
                 xlab="Method", ylab="Percentage") +
     theme_bw()+ rotate_x_text(45) +
     theme(panel.grid.major = element_line(colour = "gray97"), 
@@ -1972,8 +1994,9 @@ toplot2 <- results_all %>%
 
 toplot2$metric <- factor(toplot2$metric, levels=c("FP_scaled", "DA_scaled", "TPD_scaled", "TP_scaled"))
 
-palette_custom <-  get_palette("Dark2",4)[c(1,2,4,3)]
-p1b <- ggbarplot(toplot2, x="method", y="value", fill="metric", facet.by="scen", palette=palette_custom, 
+p1b <- ggbarplot(toplot2, x="method", y="value", fill="metric", facet.by="scen", 
+                 palette=rev(inlmisc::GetTolColors(5, scheme = "sunset"))[c(1:4)],
+                 color="white",
                  subtitle="True Positives, False Positives and Discordant Associations scaled to the total positives (100%)",
                  legend.title="Metric", title="Taxon-taxon associations",
                  xlab="Method", ylab="Percentage") +
@@ -2003,7 +2026,9 @@ toplot <- results_class %>%
 toplot$metric <- factor(toplot$metric, levels=c("TP", "TPD", "FP", "TN", "FN", "DA"))
 toplot$datatable <- factor(toplot$datatable, levels=c("positive", "negative", "non_correlated"))
 
-p2 <- ggbarplot(toplot, x="method", y="value", fill="metric", facet.by=c("datatable", "scen"), palette="Dark2",
+p2 <- ggbarplot(toplot, x="method", y="value", fill="metric", facet.by=c("datatable", "scen"), 
+                palette=rev(inlmisc::GetTolColors(6, scheme = "sunset")),
+                color="white",
                 legend.title="Metric", title="Taxon-taxon associations (classified by true association type)",
                 xlab="Method", ylab="Percentage") +
     theme_bw()+ rotate_x_text(45) +
@@ -2040,7 +2065,9 @@ toplot2 <- results_class %>%
 toplot2$metric <- factor(toplot2$metric, levels=c("FP_scaled", "DA_scaled", "TPD_scaled", "TP_scaled"))
 toplot2$datatable <- factor(toplot2$datatable, levels=c("positive", "negative", "non_correlated"))
 
-p2b <- ggbarplot(toplot2, x="method", y="value", fill="metric", facet.by=c("datatable", "scen"), palette=palette_custom, 
+p2b <- ggbarplot(toplot2, x="method", y="value", fill="metric", facet.by=c("datatable", "scen"), 
+                 palette=rev(inlmisc::GetTolColors(5, scheme = "sunset"))[1:4],
+                 color="white",
                  subtitle="True Positives, False Positives and Discordant Associations scaled to the total actual positives (100%)",
                  legend.title="Metric", title="Taxon-taxon associations (classified by true association type)",
                  xlab="Method", ylab="Percentage", scales="free_y") +
@@ -2058,18 +2085,20 @@ ggsave(p2b, filename = "output/taxontaxon/plot_performance_taxontaxon_bytype_sca
 comp <- results %>% 
     dplyr::filter(datatable %in% c("positive", "negative")) %>% 
     dplyr::select(method, datatable, scen, Recall, Precision, false_positive_rate)
-comp$method <- factor(comp$method, levels=c("Seq", "RMP", "Rel", "AST", "CLR", "CSS", "GMPR",
-                                      "UQ", "RLE", "TMM", "VST", "QMP", "ACS"))
+comp$method <- factor(comp$method, levels=c("Seq", "Rel", "RMP","AST", "CLR", "CSS", "GMPR",
+                                            "UQ", "RLE", "TMM", "VST", "ACS", "QMP"))
 comp$scen <- factor(comp$scen, levels=c("Healthy", "Blooming", "Dysbiosis"))
 
 
-p1 <- ggboxplot(comp, x="datatable", y="Recall", fill="datatable", palette="Dark2",
+p1 <- ggboxplot(comp, x="datatable", y="Recall", fill="datatable", 
+                palette=rev(inlmisc::GetTolColors(2, scheme = "sunset")),
           facet.by=c("scen", "method"), ylim=c(0,120), ylab="Sensitivity") + 
     theme_bw() + 
     rotate_x_text(45) + 
     stat_compare_means(comparisons = list(c("negative", "positive")), 
                        label = "p.signif")
-p2 <- ggboxplot(comp, x="datatable", y="Precision", fill="datatable", palette="Dark2",
+p2 <- ggboxplot(comp, x="datatable", y="Precision", fill="datatable", 
+                palette=rev(inlmisc::GetTolColors(2, scheme = "sunset")),
                 facet.by=c("scen", "method"), ylim=c(0,120), ylab="Precision") + 
     theme_bw() + 
     rotate_x_text(45) + 
@@ -2349,8 +2378,8 @@ results$method_type <- factor(results$method_type,
                               levels=c("Sequencing - non-transformed", "Relative transformations", 
                                        "Compositional transformations",
                                        "Quantitative transformations"))
-results$method <- factor(results$method, levels=c("Seq", "RMP", "Rel","AST", "CLR", "CSS", "GMPR",
-                                                  "UQ", "RLE", "TMM", "VST", "QMP", "ACS"))
+results$method <- factor(results$method, levels=c("Seq", "Rel", "RMP","AST", "CLR", "CSS", "GMPR",
+                                                  "UQ", "RLE", "TMM", "VST", "ACS", "QMP"))
 
 results$spread <- factor(results$spread, levels=c("low", "medium", "high"))
 results$scen <- factor(results$scen, levels=c("Healthy", "Blooming","Dysbiosis"))
@@ -2370,7 +2399,9 @@ toplot <- results_all %>%
 toplot$metric <- factor(toplot$metric, levels=c("TP", "TPD", "FP", "TN", "FN", "DA"))
 toplot$specialtaxon <- factor(toplot$specialtaxon, levels=c("Bloomer", "Opportunist", "Unresponsive"))
 
-p3 <- ggbarplot(toplot, x="method", y="value", fill="metric", facet.by=c("specialtaxon"), palette="Dark2",
+p3 <- ggbarplot(toplot, x="method", y="value", fill="metric", facet.by=c("specialtaxon"), 
+                palette=rev(inlmisc::GetTolColors(6, scheme = "sunset")),
+                color="white",
                 legend.title="Metric", title="Taxon-taxon associations (special taxa)",
                 xlab="Method", ylab="Percentage") +
     theme_bw()+ rotate_x_text(45) +
@@ -2387,14 +2418,14 @@ ggsave(p3, filename = "output/taxontaxon/specialtaxon/plot_performance_taxontaxo
 # now only scaled to the number of positives in the samples
 
 stats_matrix <- read_tsv("data/raw/matrix_stats_3scenarios.tsv", col_names=T)
-actual_positives <- read_tsv("output/taxontaxon/statistics_taxontaxon_correlation.tsv") %>% 
+actual_positives <- read_tsv("output/taxontaxon/specialtaxon/statistics_taxontaxon_correlation_onlyspecialtaxa.tsv") %>% #statistics_taxontaxon_correlation.tsv") %>% 
     dplyr::filter(datatable=="all") %>% 
     mutate(actual_positives=true_positive+true_positive_discordant+false_negative+discordant) %>% 
-    dplyr::select(method, matrixnum, actual_positives) %>% 
+    dplyr::select(method, matrixnum, actual_positives,specialtaxon) %>% 
     distinct()
 
 results_all <- results_all %>% 
-    left_join(actual_positives, by=c("method", "matrixnum"))
+    left_join(actual_positives, by=c("method", "matrixnum", "specialtaxon"))
 
 
 toplot <- results_all %>% 
@@ -2413,10 +2444,12 @@ toplot <- results_all %>%
 
 toplot$metric <- factor(toplot$metric, levels=c("FP_scaled", "DA_scaled","TPD_scaled", "TP_scaled"))
 toplot$specialtaxon <- factor(toplot$specialtaxon, levels=c("Bloomer", "Opportunist", "Unresponsive"))
-toplot$method <- factor(toplot$method, levels=c("Seq", "RMP", "Rel","AST", "CLR", "CSS", "GMPR",
-                                                  "UQ", "RLE", "TMM", "VST", "QMP", "ACS"))
+toplot$method <- factor(toplot$method, levels=c("Seq", "Rel", "RMP","AST", "CLR", "CSS", "GMPR",
+                                                "UQ", "RLE", "TMM", "VST", "ACS", "QMP"))
 
-p3b <- ggbarplot(toplot, x="method", y="value", fill="metric", facet.by=c("specialtaxon"), palette=palette_custom,
+p3b <- ggbarplot(toplot, x="method", y="value", fill="metric", facet.by=c("specialtaxon"), 
+                 palette=rev(inlmisc::GetTolColors(5, scheme = "sunset"))[1:4],
+                 color="white",
                  subtitle="True Positives, False Positives and Discordant Associations scaled to the total actual positives (100%)",
                  legend.title="Metric", title="Taxon-taxon associations (special taxa)",
                  xlab="Method", ylab="Percentage") +
@@ -2426,7 +2459,8 @@ p3b <- ggbarplot(toplot, x="method", y="value", fill="metric", facet.by=c("speci
     theme(axis.title = element_text(face = "bold"), 
           plot.title = element_text(size = 14, 
                                     face = "bold"), 
-          legend.title = element_text(face = "bold"))
+          legend.title = element_text(face = "bold")) +
+    geom_hline(yintercept = 100, color="black", lwd=1)
 
 ggsave(p3b, filename = "output/taxontaxon/specialtaxon/plot_performance_taxontaxon_special_scaledpositives.pdf", device = "pdf", width = 8, height=3.5, useDingbats=FALSE)
 
@@ -2623,8 +2657,8 @@ results$method_type <- factor(results$method_type,
                               levels=c("Sequencing - non-transformed", "Traditional transformations", 
                                        "Compositional transformations",
                                        "Transformations incorporating microbial loads"))
-results$method <- factor(results$method, levels=c("Seq", "RMP", "Rel","AST", "CLR", "CSS", "GMPR",
-                                                  "UQ", "RLE", "TMM", "VST", "QMP", "ACS"))
+results$method <- factor(results$method, levels=c("Seq", "Rel", "RMP","AST", "CLR", "CSS", "GMPR",
+                                                  "UQ", "RLE", "TMM", "VST", "ACS", "QMP"))
 
 results$spread <- factor(results$spread, levels=c("low", "high"))
 results$scen <- factor(results$scen, levels=c("Healthy", "Blooming","Dysbiosis"))
@@ -2643,7 +2677,9 @@ toplot <- results_all %>%
 
 toplot$metric <- factor(toplot$metric, levels=c("TP", "FP", "TN", "FN", "DA"))
 
-p1 <- ggbarplot(toplot, x="method", y="value", fill="metric", facet.by="scen", palette="Dark2",
+p1 <- ggbarplot(toplot, x="method", y="value", fill="metric", facet.by="scen", 
+                palette=rev(inlmisc::GetTolColors(5, scheme = "sunset")),
+                color="white",
                 legend.title="Metric", title="Taxon-taxon associations",
                 xlab="Method", ylab="Percentage") +
     theme_bw()+ rotate_x_text(45) +
@@ -2673,7 +2709,9 @@ toplot2 <- results_all %>%
 
 toplot2$metric <- factor(toplot2$metric, levels=c("FP_scaled", "DA_scaled", "TP_scaled"))
 
-p1b <- ggbarplot(toplot2, x="method", y="value", fill="metric", facet.by="scen", palette="Dark2", 
+p1b <- ggbarplot(toplot2, x="method", y="value", fill="metric", facet.by="scen",
+                 palette=rev(inlmisc::GetTolColors(5, scheme = "sunset"))[c(1:2,4)],
+                 color="white",
                  subtitle="True Positives, False Positives and Discordant Associations scaled to the total positives (100%)",
                  legend.title="Metric", title="Taxon-metadata associations",
                  xlab="Method", ylab="Percentage") +
@@ -2703,7 +2741,9 @@ toplot <- results_class %>%
 toplot$metric <- factor(toplot$metric, levels=c("TP", "FP", "TN", "FN", "DA"))
 toplot$datatable <- factor(toplot$datatable, levels=c("positive", "negative", "categorical", "non_correlated"))
 
-p2 <- ggbarplot(toplot, x="method", y="value", fill="metric", facet.by=c("datatable", "scen"), palette="Dark2",
+p2 <- ggbarplot(toplot, x="method", y="value", fill="metric", facet.by=c("datatable", "scen"), 
+                palette=rev(inlmisc::GetTolColors(5, scheme = "sunset")),
+                color="white",
                 legend.title="Metric", title="Taxon-metadata associations (classified by true association type)",
                 xlab="Method", ylab="Percentage") +
     theme_bw()+ rotate_x_text(45) +
@@ -2739,7 +2779,9 @@ toplot2 <- results_class %>%
 toplot2$metric <- factor(toplot2$metric, levels=c("FP_scaled", "DA_scaled", "TP_scaled"))
 toplot2$datatable <- factor(toplot2$datatable, levels=c("positive", "negative", "categorical", "non_correlated"))
 
-p2b <- ggbarplot(toplot2, x="method", y="value", fill="metric", facet.by=c("datatable", "scen"), scales="free_y", palette="Dark2", 
+p2b <- ggbarplot(toplot2, x="method", y="value", fill="metric", facet.by=c("datatable", "scen"), scales="free_y",
+                 palette=rev(inlmisc::GetTolColors(5, scheme = "sunset"))[c(1:2,4)],
+                 color="white",
                  subtitle="True Positives, False Positives and Discordant Associations scaled to the total actual positives (100%)",
                  legend.title="Metric", title="Taxon-metadata associations (classified by true association type)",
                  xlab="Method", ylab="Percentage") +
@@ -2996,8 +3038,8 @@ results$method_type <- factor(results$method_type,
                               levels=c("Sequencing - non-transformed", "Relative transformations", 
                                        "Compositional transformations",
                                        "Quantitative transformations"))
-results$method <- factor(results$method, levels=c("Seq", "RMP", "Rel","AST", "CLR", "CSS", "GMPR",
-                                                  "UQ", "RLE", "TMM", "VST", "QMP", "ACS"))
+results$method <- factor(results$method, levels=c("Seq", "Rel", "RMP","AST", "CLR", "CSS", "GMPR",
+                                                  "UQ", "RLE", "TMM", "VST", "ACS", "QMP"))
 
 results$spread <- factor(results$spread, levels=c("low", "medium", "high"))
 results$scen <- factor(results$scen, levels=c("Healthy", "Blooming","Dysbiosis"))
@@ -3017,7 +3059,9 @@ toplot <- results_all %>%
 toplot$metric <- factor(toplot$metric, levels=c("TP", "FP", "TN", "FN", "DA"))
 toplot$specialtaxon <- factor(toplot$specialtaxon, levels=c("Bloomer", "Opportunist", "Unresponsive"))
 
-p3 <- ggbarplot(toplot, x="method", y="value", fill="metric", facet.by=c("specialtaxon"), palette="Dark2",
+p3 <- ggbarplot(toplot, x="method", y="value", fill="metric", facet.by=c("specialtaxon"), 
+                palette=rev(inlmisc::GetTolColors(5, scheme = "sunset")),
+                color="white",
                 legend.title="Metric", title="Taxon-metadata associations (special taxa)",
                 xlab="Method", ylab="Percentage") +
     theme_bw()+ rotate_x_text(45) +
@@ -3034,14 +3078,14 @@ ggsave(p3, filename = "output/taxonmetadata/specialtaxon/plot_performance_taxonm
 
 # now only scaled to the number of positives in the samples
 stats_matrix <- read_tsv("data/raw/matrix_stats_3scenarios.tsv", col_names=T)
-actual_positives <- read_tsv("output/taxonmetadata/statistics_taxonmetadata_correlation.tsv") %>% 
+actual_positives <- read_tsv("output/taxonmetadata/specialtaxon/statistics_taxonmetadata_correlation_onlyspecialtaxa.tsv") %>% #statistics_taxonmetadata_correlation.tsv") %>% 
     dplyr::filter(datatable=="all") %>% 
     mutate(actual_positives=true_positive+false_negative+discordant) %>% 
-    dplyr::select(method, matrixnum, actual_positives) %>% 
+    dplyr::select(method, matrixnum,specialtaxon, actual_positives) %>% 
     distinct()
 
 results_all <- results_all %>% 
-    left_join(actual_positives, by=c("method", "matrixnum"))
+    left_join(actual_positives, by=c("method", "matrixnum", "specialtaxon"))
 
 toplot <- results_all %>% 
     left_join(stats_matrix, by=c("matrixnum" = "matrix", "scen" = "scenario", "specialtaxon" = "special_taxon")) %>% 
@@ -3058,10 +3102,12 @@ toplot <- results_all %>%
 
 toplot$metric <- factor(toplot$metric, levels=c("FP_scaled", "DA_scaled", "TP_scaled"))
 toplot$specialtaxon <- factor(toplot$specialtaxon, levels=c("Bloomer", "Opportunist", "Unresponsive"))
-toplot$method <- factor(toplot$method, levels=c("Seq", "RMP", "Rel","AST", "CLR", "CSS", "GMPR",
-                                                "UQ", "RLE", "TMM", "VST", "QMP", "ACS"))
+toplot$method <- factor(toplot$method, levels=c("Seq", "Rel", "RMP","AST", "CLR", "CSS", "GMPR",
+                                                "UQ", "RLE", "TMM", "VST", "ACS", "QMP"))
 
-p3b <- ggbarplot(toplot, x="method", y="value", fill="metric", facet.by=c("specialtaxon"), palette="Dark2",
+p3b <- ggbarplot(toplot, x="method", y="value", fill="metric", facet.by=c("specialtaxon"), 
+                 palette=rev(inlmisc::GetTolColors(5, scheme = "sunset"))[c(1:2,4)],
+                 color="white",
                  subtitle="True Positives, False Positives and Discordant Associations, scaled to the number of true associations",
                  legend.title="Metric", title="Taxon-metadata associations (special taxa)",
                  xlab="Method", ylab="Percentage") +
@@ -3071,6 +3117,7 @@ p3b <- ggbarplot(toplot, x="method", y="value", fill="metric", facet.by=c("speci
     theme(axis.title = element_text(face = "bold"), 
           plot.title = element_text(size = 14, 
                                     face = "bold"), 
-          legend.title = element_text(face = "bold"))
+          legend.title = element_text(face = "bold")) +
+    geom_hline(yintercept = 100, col="black", lwd=1)
 
 ggsave(p3b, filename = "output/taxonmetadata/specialtaxon/plot_performance_taxonmetadata_special_scaledpositives.pdf", device = "pdf", width = 8, height=3.5, useDingbats=FALSE)

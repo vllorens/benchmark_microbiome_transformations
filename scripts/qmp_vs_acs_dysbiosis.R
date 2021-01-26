@@ -13,6 +13,7 @@ suppressPackageStartupMessages(library(ggpubr))
 suppressPackageStartupMessages(library(phyloseq))
 suppressPackageStartupMessages(library(ggsignif))
 suppressPackageStartupMessages(library(rstatix))
+suppressPackageStartupMessages(library(inlmisc))
 
 # load required functions
 source("R/estimateZeros.R")
@@ -26,10 +27,10 @@ source("R/counts_taxa_correlation.R")
 # source("scripts/generate_data.R") # this is needed to generate the original matrices and metadata only
 
 # create folders, if not existing
-system("mkdir -p output/qmp_acs2")
+system("mkdir -p output/qmp_acs")
 
 # clean these folders and remove all previous results (if any) 
-system("rm -r output/qmp_acs2/*")
+system("rm -r output/qmp_acs/*")
 
 set.seed(777)
 
@@ -66,9 +67,10 @@ for(file in list.files("data/tax_matrices", full.names = T, pattern="Dysbiosis")
     spread_name <- strsplit(filename, split="_")[[1]][3]
     scenario_name <- strsplit(filename, split="_")[[1]][5] %>% gsub(., pattern="\\.tsv", replacement="")
     counts_original <- apply(tax_matrix, 2, sum) %>% as.data.frame
+    filecounts <- gsub(file, pattern="tax_matrices/taxonomy", replacement="counts_estimated/countsEstimated_QMP_taxonomy")
+    counts_estimated <- read.table(filecounts,  header=T, stringsAsFactors=F, sep="\t")
     
-    # instead of reading the metadata, make just one metadata variable (healthy vs diseased) that correlates with cell counts, but not perfectly
-    original_counts
+    # instead of reading the metadata, make just one metadata variable (healthy vs diseased) that correlates with original cell counts, but not perfectly
     val <- 0
     chisq <- 1
     wilcox <- 1
@@ -102,7 +104,7 @@ for(file in list.files("data/tax_matrices", full.names = T, pattern="Dysbiosis")
             for(q in 1:length(species_quantiles)){
                 metaLine[speciesZ<=species_quantiles[q]] <- valCats[q]
             }
-            dftest <- data.frame(values=total_counts, categories=metaLine)
+            dftest <- data.frame(values=original_counts, categories=metaLine)
             chisq <- kruskal.test(values ~ categories, data=dftest)[[3]]
             dfsptax <- data.frame(values=c(unlist(tax_matrix[sptax,])), categories=metaLine)
             wilcox <- wilcox.test(values ~ categories, data=dfsptax)[[3]]
@@ -140,6 +142,65 @@ for(file in list.files("data/tax_matrices", full.names = T, pattern="Dysbiosis")
         mutate(diff=groupA-groupB) %>% 
         mutate(sign=sign(diff))
     
+    # plot example
+    orig_data <- tibble(counts_original=counts_original[,1],  group=groupClass )
+    orig_data$group <- factor(orig_data$group, levels = c("groupA", "groupB"))
+    p1 <- ggboxplot(orig_data, x="group", y="counts_original", 
+                    title="Disease associated to lower microbial loads (dysbiosis)",
+                    ylab="Microbial loads (cells/gram of stool)", xlab="",
+                    palette=inlmisc::GetTolColors(5, scheme = "sunset")[c(2,5)],
+                    fill="group", add="jitter") + 
+        stat_compare_means(comparisons = list(c("groupA", "groupB"))) +
+        theme_bw() +
+        theme(panel.grid.major = element_line(colour = "gray97"), 
+              panel.grid.minor = element_line(colour = "gray97")) + 
+        theme(axis.title = element_text(face = "bold"), 
+              plot.title = element_text(size = 14, 
+                                        face = "bold"), legend.title = element_text(face = "bold"))
+    ggsave(p1, file=paste0("output/qmp_acs/example_", matrix_name, "_counts.pdf"), device="pdf", 
+           width=5, height=3.5, useDingbats=FALSE)
+    opportunist_taxa <- stats_matrix %>% dplyr::filter(matrix==matrix_name) %>% pull(special_taxon)
+    flat_taxa <- stats_matrix %>% dplyr::filter(matrix==matrix_name) %>% pull(flat_taxon_dysbiosis) 
+    flat_taxa <- strsplit(flat_taxa, split=",")[[1]][1]
+    normal_taxa <- sample(setdiff(rownames(tax_matrix), c(opportunist_taxa, flat_taxa)),1)
+    print(paste0("Matrix ", matrix_name))
+    print(paste0("Normal taxa: ", normal_taxa))
+    print(paste0("Opportunist taxa: ", opportunist_taxa))
+    print(paste0("Flat taxa: ", flat_taxa))
+    opp_matrix <- tax_matrix[opportunist_taxa,, drop=F] %>% 
+        as_tibble %>% 
+        mutate(taxa=opportunist_taxa) %>% 
+        gather(key="sample", value="counts", -taxa) %>% 
+        mutate(type="opportunist")
+    flat_matrix <- tax_matrix[flat_taxa,, drop=F] %>% 
+        as_tibble %>% 
+        mutate(taxa=flat_taxa) %>% 
+        gather(key="sample", value="counts", -taxa) %>% 
+        mutate(type="flat")
+    normal_matrix <- tax_matrix[normal_taxa,, drop=F] %>% 
+        as_tibble %>% 
+        mutate(taxa=normal_taxa) %>% 
+        gather(key="sample", value="counts", -taxa) %>% 
+        mutate(type="normal")
+    toplot <- bind_rows(opp_matrix, flat_matrix, normal_matrix) %>% 
+        left_join(group_class, by="sample")
+    toplot$groupClass <- factor(toplot$groupClass, levels = c("groupA", "groupB"))
+    toplot$type <- factor(toplot$type, levels = c("normal", "opportunist", "flat"))
+    p2 <- ggboxplot(toplot, x="groupClass", y="counts", 
+              fill="groupClass", add="jitter",
+              palette=inlmisc::GetTolColors(5, scheme = "sunset")[c(2,5)],
+              facet.by = "type", scales="free_y", 
+              xlab="", ylab="Taxon counts") + 
+        stat_compare_means(comparisons = list(c("groupA", "groupB"))) +
+        theme_bw() +
+        theme(panel.grid.major = element_line(colour = "gray97"), 
+              panel.grid.minor = element_line(colour = "gray97")) + 
+        theme(axis.title = element_text(face = "bold"), 
+              plot.title = element_text(size = 14, 
+                                        face = "bold"), legend.title = element_text(face = "bold"))
+    ggsave(p2, file=paste0("output/qmp_acs/example_", matrix_name, "_taxa.pdf"), device="pdf", 
+           width=11, height=3.5, useDingbats=FALSE)
+    
     # simulate sequencing + rarefying to even sampling depth
     for(depth in sequencing_avg_depths){
         print(depth)
@@ -156,9 +217,16 @@ for(file in list.files("data/tax_matrices", full.names = T, pattern="Dysbiosis")
         rownames(seqOut) <- rownames(tax_matrix)
         
         # generate QMP and ACS data for this specific sequencing depth
-        qmp <- rarefy_even_sampling_depth(cnv_corrected_abundance_table = seqOut, cell_counts_table = counts_original)
-        normFactor <- apply(tax_matrix,2,sum)/apply(seqOut,2,sum)
+        qmp <- rarefy_even_sampling_depth(cnv_corrected_abundance_table = seqOut, cell_counts_table = counts_estimated)
+        normFactor <- counts_estimated[,1]/apply(seqOut,2,sum)
         acs <- sweep(seqOut, MARGIN = 2, normFactor, '*')
+        
+        # remove taxa that has zero counts throughout all qmp samples - to avoid an error in the comparisons
+        taxa_to_remove <- which(apply(qmp,1,sum)==0)
+        if(length(taxa_to_remove)>0){
+            qmp <- qmp[-taxa_to_remove,]
+            acs <- acs[-taxa_to_remove,]
+        }
         
         #correlations on qmp/ACS data (all taxon-metadata correlations, to determine Precision and Recall)
         data_qmp_p <- qmp %>% 
@@ -205,37 +273,18 @@ for(file in list.files("data/tax_matrices", full.names = T, pattern="Dysbiosis")
             mutate(diff=groupA-groupB) %>% 
             mutate(sign=sign(diff))
         
-        # # correlation of taxa w number of cell counts in the original data
-        # taxoncor <- counts_taxa_correlation(as.matrix(tax_matrix), original_counts)
-        # taxoncor[[2]] <- p.adjust(taxoncor[[2]], method="BH")
-        # 
-        # # select taxa that are not correlated to the number of cell counts, and therefore should not be correlated to metadata associated to counts
-        # not_cor <- which(taxoncor[[2]]>0.05)
-        # 
-        # Assess performance on ALL TAXA
-        # file_qmp <- data_qmp
-        # file_qmp[[2]] <- matrix(p.adjust(as.vector(as.matrix(file_qmp[[2]])), method='fdr'),ncol=ncol(file_qmp[[2]]))
-        # colnames(file_qmp[[2]]) <- colnames(file_qmp[[1]])
-        # rownames(file_qmp[[2]]) <- rownames(file_qmp[[1]])
-        # file_acs <- data_acs
-        # file_acs[[2]] <- matrix(p.adjust(as.vector(as.matrix(file_acs[[2]])), method='fdr'),ncol=ncol(file_acs[[2]]))
-        # colnames(file_acs[[2]]) <- colnames(file_acs[[1]])
-        # rownames(file_acs[[2]]) <- rownames(file_acs[[1]])
-        # file_reference <- file_real
-        # file_reference[[2]] <- matrix(p.adjust(as.vector(as.matrix(file_reference[[2]])), method='fdr'),ncol=ncol(file_reference[[2]]))
-        # colnames(file_reference[[2]]) <- colnames(file_reference[[1]])
-        # rownames(file_reference[[2]]) <- rownames(file_reference[[1]])
+        
+        # first remove taxa from the original matrix as well 
+        real_assoc_p_filtered <- real_assoc_p %>% dplyr::filter(taxa %in% data_qmp_p$taxa)
+        real_assoc_sign_filtered <- real_assoc_sign %>% dplyr::filter(taxa %in% data_qmp_sign$taxa)
         
         # assess performance
         test_significant_qmp_all <- data_qmp_p$p_adj < 0.05
         test_significant_acs_all <- data_acs_p$p_adj < 0.05
-        reference_significant_all <- real_assoc_p$p_adj < 0.05
+        reference_significant_all <- real_assoc_p_filtered$p_adj < 0.05
         test_sign_qmp_all <- data_qmp_sign$sign
         test_sign_acs_all <- data_acs_sign$sign
-        reference_sign_all <- real_assoc_sign$sign
-        # test_sign_qmp_all[is.na(test_sign_qmp_all)] <- 1
-        # test_sign_acs_all[is.na(test_sign_acs_all)] <- 1
-        # reference_sign_all[is.na(reference_sign_all)] <- 1
+        reference_sign_all <- real_assoc_sign_filtered$sign
         
         tpqmp <- length(which(test_significant_qmp_all & reference_significant_all & test_sign_qmp_all==reference_sign_all))
         tpacs <- length(which(test_significant_acs_all & reference_significant_all & test_sign_acs_all==reference_sign_all))
@@ -269,10 +318,10 @@ for(file in list.files("data/tax_matrices", full.names = T, pattern="Dysbiosis")
         # Assess performance specifically on taxa associated to disease
         # taxa associated to disease
         sign_disease <- table(reference_sign_all) %>% which.min %>% names() %>% as.numeric()
-        taxa_disease <- real_assoc_sign %>% 
+        taxa_disease <- real_assoc_sign_filtered %>% 
             dplyr::filter(sign==sign_disease) %>% 
             pull(taxa)
-        taxa_disease <- real_assoc_p %>% 
+        taxa_disease <- real_assoc_p_filtered %>% 
             dplyr::filter(taxa %in% taxa_disease, p_adj<0.05) %>% 
             pull(taxa)
         test_significant_qmp_all <- data_qmp_p %>% 
@@ -281,7 +330,7 @@ for(file in list.files("data/tax_matrices", full.names = T, pattern="Dysbiosis")
         test_significant_acs_all <- data_acs_p %>% 
             dplyr::filter(taxa %in% taxa_disease) %>% 
             pull(p_adj) < 0.05
-        reference_significant_all <- real_assoc_p %>% 
+        reference_significant_all <- real_assoc_p_filtered %>% 
             dplyr::filter(taxa %in% taxa_disease) %>% 
             pull(p_adj) < 0.05
         test_sign_qmp_all <- data_qmp_sign %>% 
@@ -290,12 +339,9 @@ for(file in list.files("data/tax_matrices", full.names = T, pattern="Dysbiosis")
         test_sign_acs_all <- data_acs_sign %>% 
             dplyr::filter(taxa %in% taxa_disease) %>% 
             pull(sign)
-        reference_sign_all <- real_assoc_sign %>% 
+        reference_sign_all <- real_assoc_sign_filtered %>% 
             dplyr::filter(taxa %in% taxa_disease) %>% 
             pull(sign)
-        # test_sign_qmp_all[is.na(test_sign_qmp_all)] <- 1
-        # test_sign_acs_all[is.na(test_sign_acs_all)] <- 1
-        # reference_sign_all[is.na(reference_sign_all)] <- 1
         
         tpqmp <- length(which(test_significant_qmp_all & reference_significant_all & test_sign_qmp_all==reference_sign_all))
         tpacs <- length(which(test_significant_acs_all & reference_significant_all & test_sign_acs_all==reference_sign_all))
@@ -328,7 +374,7 @@ for(file in list.files("data/tax_matrices", full.names = T, pattern="Dysbiosis")
         
         # Assess performance specifically on invariant taxa
         # taxa associated to disease
-        taxa_flat <-  real_assoc_p %>% 
+        taxa_flat <-  real_assoc_p_filtered %>% 
             dplyr::filter(p_adj>0.05) %>% 
             pull(taxa)
         test_significant_qmp_all <- data_qmp_p %>% 
@@ -337,7 +383,7 @@ for(file in list.files("data/tax_matrices", full.names = T, pattern="Dysbiosis")
         test_significant_acs_all <- data_acs_p %>% 
             dplyr::filter(taxa %in% taxa_flat) %>% 
             pull(p_adj) < 0.05
-        reference_significant_all <- real_assoc_p %>% 
+        reference_significant_all <- real_assoc_p_filtered %>% 
             dplyr::filter(taxa %in% taxa_flat) %>% 
             pull(p_adj) < 0.05
         test_sign_qmp_all <- data_qmp_sign %>% 
@@ -346,7 +392,7 @@ for(file in list.files("data/tax_matrices", full.names = T, pattern="Dysbiosis")
         test_sign_acs_all <- data_acs_sign %>% 
             dplyr::filter(taxa %in% taxa_flat) %>% 
             pull(sign)
-        reference_sign_all <- real_assoc_sign %>% 
+        reference_sign_all <- real_assoc_sign_filtered %>% 
             dplyr::filter(taxa %in% taxa_flat) %>% 
             pull(sign)
         # test_sign_qmp_all[is.na(test_sign_qmp_all)] <- 1
@@ -381,61 +427,10 @@ for(file in list.files("data/tax_matrices", full.names = T, pattern="Dysbiosis")
         depths <- c(depths, exp(depth))
         matname <- c(matname, matrix_name)
         valuesused <- c(valuesused, "flat")
-        
-    #     # Assess performance on INVARIANT TAXA
-    #     if(length(not_cor)>0){  
-    #         file_qmp <- data_qmp
-    #         file_qmp[[1]] <- file_qmp[[1]][not_cor,c(46:50,96:100)]    
-    #         file_qmp[[2]] <- file_qmp[[2]][not_cor,c(46:50,96:100)]
-    #         file_acs <- data_acs
-    #         file_acs[[1]] <- file_acs[[1]][not_cor,c(46:50,96:100)]    
-    #         file_acs[[2]] <- file_acs[[2]][not_cor,c(46:50,96:100)]  
-    #         file_reference <- file_real
-    #         file_reference[[1]] <- file_reference[[1]][not_cor,c(46:50,96:100)]    
-    #         file_reference[[2]] <- file_reference[[2]][not_cor,c(46:50,96:100)]  
-    #         
-    #         # assess performance
-    #         test_significant_qmp <- c(unlist(file_qmp[[2]] < 0.05))
-    #         test_significant_acs <- c(unlist(file_acs[[2]] < 0.05))
-    #         reference_significant <- c(unlist(file_reference[[2]] < 0.05))
-    #         test_sign_qmp <- sign(c(unlist(file_qmp[[1]])))
-    #         test_sign_acs <- sign(c(unlist(file_acs[[1]])))
-    #         reference_sign <- sign(c(unlist(file_reference[[1]])))
-    #         test_sign_qmp[is.na(test_sign_qmp)] <- 1
-    #         test_sign_acs[is.na(test_sign_acs)] <- 1
-    #         reference_sign[is.na(reference_sign)] <- 1
-    #         
-    #         tpqmp <- length(which(test_significant_qmp & reference_significant & test_sign_qmp==reference_sign))
-    #         tpacs <- length(which(test_significant_acs & reference_significant & test_sign_acs==reference_sign))
-    #         
-    #         fpqmp <- length(which(test_significant_qmp & !reference_significant))+length(which(test_significant_qmp & reference_significant & test_sign_qmp!=reference_sign))
-    #         fpacs <- length(which(test_significant_acs & !reference_significant))+length(which(test_significant_acs & reference_significant & test_sign_acs!=reference_sign))
-    #         
-    #         tnqmp <- length(which(!test_significant_qmp & !reference_significant))
-    #         tnacs <- length(which(!test_significant_acs & !reference_significant))
-    #         
-    #         fnqmp <- length(which(!test_significant_qmp & reference_significant))
-    #         fnacs <- length(which(!test_significant_acs & reference_significant))
-    #         
-    #         
-    #         fdr_qmp <- c(fdr_qmp, fpqmp/(fpqmp+tpqmp))
-    #         fdr_acs <- c(fdr_acs, fpacs/(fpacs+tpacs))
-    #         spread_v <- c(spread_v, spread_name)
-    #         scenario_v <- c(scenario_v, scenario_name)
-    #         fp_qmp <- c(fp_qmp, fpqmp/(fpqmp+tnqmp))
-    #         fp_acs <- c(fp_acs, fpacs/(fpacs+tnacs))
-    #         tp_qmp <- c(tp_qmp, tpqmp/(tpqmp+fnqmp))
-    #         tp_acs <- c(tp_acs, tpacs/(tpacs+fnacs))
-    #         pr_qmp <- c(pr_qmp, tpqmp/(tpqmp+fpqmp))
-    #         pr_acs <- c(pr_acs, tpacs/(tpacs+fpacs))
-    #         depths <- c(depths, exp(depth))
-    #         matname <- c(matname, matrix_name)
-    #         valuesused <- c(valuesused, "invariant")
-    #     }
     }
     
     result <- tibble(fdr_qmp, fdr_acs, spread_v, scenario_v, fp_qmp, fp_acs, tp_qmp, tp_acs, pr_qmp, pr_acs, depths, matname, valuesused)
-    write_tsv(result, "output/qmp_acs2/qmp_vs_acs_taxonmetadata_depths.tsv", col_names = T)
+    write_tsv(result, "output/qmp_acs/qmp_vs_acs_taxonmetadata_depths.tsv", col_names = T)
 }
 
 
@@ -454,7 +449,7 @@ resultlong$spread_v <- resultlong$spread_v %>% gsub(., pattern="medium", replace
 resultlong$spread_v <- resultlong$spread_v %>% gsub(., pattern="high", replacement="High")
 resultlong$spread_v <- factor(resultlong$spread_v, levels=c("Low", "Medium", "High"))
 fprall <- ggline(resultlong, x="depths", y="FPR", color="method", facet.by="spread_v",
-                 numeric.x.axis = T, add = "mean_se", palette=get_palette("Spectral", k = 11)[c(2,10)], xlab="Sequencing reads", 
+                 numeric.x.axis = T, add = "mean_se", palette=inlmisc::GetTolColors(5, scheme = "sunset")[c(2,5)], xlab="Sequencing reads", 
                  ylab="FPR [FP/FP+TN]", title = "Taxa-metadata associations - FPR", xscale="log10", .format=T,
                  legend.title="Method") + 
     theme_bw() + 
@@ -464,7 +459,7 @@ fprall <- ggline(resultlong, x="depths", y="FPR", color="method", facet.by="spre
           plot.title = element_text(size = 14, 
                                     face = "bold"), legend.title = element_text(face = "bold"))
 ggsave(fprall, file="output/qmp_acs/qmp_vs_acs_alltaxa_fdr_metadata.pdf", device="pdf", 
-       width=11, height=3.5)
+       width=8, height=3,useDingbats=FALSE)
 
 
 result <- read_tsv("output/qmp_acs/qmp_vs_acs_taxonmetadata_depths.tsv", col_names=T)
@@ -482,7 +477,7 @@ resultlong$spread_v <- resultlong$spread_v %>% gsub(., pattern="high", replaceme
 resultlong$spread_v <- factor(resultlong$spread_v, levels=c("Low", "Medium", "High"))
 
 precisionall <- ggline(resultlong, x="depths", y="Precision", color="method", facet.by="spread_v",
-                       numeric.x.axis = T, add = "mean_se", palette=get_palette("Spectral", k = 11)[c(2,10)], xlab="Sequencing reads", 
+                       numeric.x.axis = T, add = "mean_se", palette=inlmisc::GetTolColors(5, scheme = "sunset")[c(2,5)], xlab="Sequencing reads", 
                        ylab="Precision [TP/TP+FP]", title = "Taxa-metadata associations - Precision",xscale="log10", .format=T,
                        legend.title="Method") + 
     
@@ -493,7 +488,7 @@ precisionall <- ggline(resultlong, x="depths", y="Precision", color="method", fa
           plot.title = element_text(size = 14, 
                                     face = "bold"), legend.title = element_text(face = "bold"))
 ggsave(precisionall, file="output/qmp_acs/qmp_vs_acs_alltaxa_precision_metadata.pdf", device="pdf", 
-       width=11, height=3.5)
+       width=8, height=3,useDingbats=FALSE)
 
 
 result <- read_tsv("output/qmp_acs/qmp_vs_acs_taxonmetadata_depths.tsv", col_names=T)
@@ -511,7 +506,7 @@ resultlong$spread_v <- resultlong$spread_v %>% gsub(., pattern="high", replaceme
 resultlong$spread_v <- factor(resultlong$spread_v, levels=c("Low", "Medium", "High"))
 
 recallall <- ggline(resultlong, x="depths", y="Recall", color="method", facet.by="spread_v",
-                    numeric.x.axis = T, add = "mean_se", palette=get_palette("Spectral", k = 11)[c(2,10)], xlab="Sequencing reads", 
+                    numeric.x.axis = T, add = "mean_se", palette=inlmisc::GetTolColors(5, scheme = "sunset")[c(2,5)], xlab="Sequencing reads", 
                     ylab="Recall [TP/TP+FN]", title = "Taxa-metadata associations - Recall", xscale="log10", .format=T,
                     legend.title="Method") + 
     theme_bw() + 
@@ -521,14 +516,14 @@ recallall <- ggline(resultlong, x="depths", y="Recall", color="method", facet.by
           plot.title = element_text(size = 14, 
                                     face = "bold"), legend.title = element_text(face = "bold"))
 ggsave(recallall, file="output/qmp_acs/qmp_vs_acs_alltaxa_recall_metadata.pdf", device="pdf", 
-       width=11, height=3.5)
+       width=8, height=3,useDingbats=FALSE)
 
 
 #### Assess performance of both QMP and ACS (invariant taxa only, no dysbiosis) ####
 
 result <- read_tsv("output/qmp_acs/qmp_vs_acs_taxonmetadata_depths.tsv", col_names=T)
 resultlong <- result %>% 
-    dplyr::filter(valuesused=="invariant") %>% 
+    dplyr::filter(valuesused=="flat") %>% 
     # dplyr::filter(scenario_v!="Dysbiosis") %>% 
     dplyr::select(-c(fdr_qmp, fdr_acs, tp_qmp, tp_acs, pr_qmp, pr_acs, valuesused)) %>% 
     gather(., key = "method", value="FPR", -c(spread_v, scenario_v, depths, matname))
@@ -542,7 +537,8 @@ resultlong$spread_v <- resultlong$spread_v %>% gsub(., pattern="medium", replace
 resultlong$spread_v <- resultlong$spread_v %>% gsub(., pattern="high", replacement="High")
 resultlong$spread_v <- factor(resultlong$spread_v, levels=c("Low", "Medium", "High"))
 fprinv <- ggline(resultlong, x="depths", y="FPR", color="method", facet.by="spread_v",
-                 numeric.x.axis = T, add = "mean_se", palette=get_palette("Spectral", k = 11)[c(2,10)], xlab="Sequencing reads", 
+                 numeric.x.axis = T, add = "mean_se", palette=inlmisc::GetTolColors(5, scheme = "sunset")[c(2,5)],
+                 xlab="Sequencing reads", 
                  ylab="FPR [FP/FP+TN]", title = "Invariant taxa-metadata associations - FPR",
                  legend.title="Method", xscale="log10", .format=T) + 
     theme_bw() + 
@@ -552,12 +548,12 @@ fprinv <- ggline(resultlong, x="depths", y="FPR", color="method", facet.by="spre
           plot.title = element_text(size = 14, 
                                     face = "bold"), legend.title = element_text(face = "bold"))
 ggsave(fprinv, file="output/qmp_acs/qmp_vs_acs_invtaxa_fdr_metadata.pdf", device="pdf", 
-       width=11, height=3.5)
+       width=8, height=3, useDingbats=F)
 
 
 result <- read_tsv("output/qmp_acs/qmp_vs_acs_taxonmetadata_depths.tsv", col_names=T)
 resultlong <- result %>% 
-    dplyr::filter(valuesused=="invariant") %>% 
+    dplyr::filter(valuesused=="flat") %>% 
     #dplyr::filter(scenario_v!="Dysbiosis") %>% 
     dplyr::select(-c(fdr_qmp, fdr_acs, tp_qmp, tp_acs, fp_qmp, fp_acs, valuesused)) %>% 
     gather(., key = "method", value="Precision", -c(spread_v, scenario_v, depths, matname))
@@ -571,7 +567,7 @@ resultlong$spread_v <- resultlong$spread_v %>% gsub(., pattern="high", replaceme
 resultlong$spread_v <- factor(resultlong$spread_v, levels=c("Low", "Medium", "High"))
 
 precisioninv <- ggline(resultlong, x="depths", y="Precision", color="method", facet.by="spread_v",
-                       numeric.x.axis = T, add = "mean_se", palette=get_palette("Spectral", k = 11)[c(2,10)], xlab="Sequencing reads", 
+                       numeric.x.axis = T, add = "mean_se", palette=inlmisc::GetTolColors(5, scheme = "sunset")[c(2,5)], xlab="Sequencing reads", 
                        ylab="Precision [TP/TP+FP]", title = "Invariant taxa-metadata associations - Precision",
                        legend.title="Method", xscale="log10", .format=T) + 
     theme_bw() + 
@@ -581,12 +577,12 @@ precisioninv <- ggline(resultlong, x="depths", y="Precision", color="method", fa
           plot.title = element_text(size = 14, 
                                     face = "bold"), legend.title = element_text(face = "bold"))
 ggsave(precisioninv, file="output/qmp_acs/qmp_vs_acs_invtaxa_precision_metadata.pdf", device="pdf", 
-       width=11, height=3.5)
+       width=8, height=3, useDingbats=F)
 
 
 result <- read_tsv("output/qmp_acs/qmp_vs_acs_taxonmetadata_depths.tsv", col_names=T)
 resultlong <- result %>% 
-    dplyr::filter(valuesused=="invariant") %>% 
+    dplyr::filter(valuesused=="disease") %>% 
     #dplyr::filter(scenario_v!="Dysbiosis") %>% 
     dplyr::select(-c(fdr_qmp, fdr_acs, pr_qmp, pr_acs, fp_qmp, fp_acs,valuesused)) %>% 
     gather(., key = "method", value="Recall", -c(spread_v, scenario_v, depths, matname))
@@ -600,8 +596,9 @@ resultlong$spread_v <- resultlong$spread_v %>% gsub(., pattern="high", replaceme
 resultlong$spread_v <- factor(resultlong$spread_v, levels=c("Low", "Medium", "High"))
 
 recallinv <- ggline(resultlong, x="depths", y="Recall", color="method", facet.by="spread_v",
-                    numeric.x.axis = T, add = "mean_se", palette=get_palette("Spectral", k = 11)[c(2,10)], xlab="Sequencing reads", 
-                    ylab="Recall [TP/TP+FN]", title = "Invariant taxa-metadata associations - Recall",
+                    numeric.x.axis = T, add = "mean_se", palette=inlmisc::GetTolColors(5, scheme = "sunset")[c(2,5)],
+                    xlab="Sequencing reads", 
+                    ylab="Recall [TP/TP+FN]", title = "Opportunist taxa-metadata associations - Recall",
                     legend.title="Method", xscale="log10", .format=T) + 
     theme_bw() + 
     theme(panel.grid.major = element_line(colour = "gray97"), 
@@ -609,8 +606,8 @@ recallinv <- ggline(resultlong, x="depths", y="Recall", color="method", facet.by
     theme(axis.title = element_text(face = "bold"), 
           plot.title = element_text(size = 14, 
                                     face = "bold"), legend.title = element_text(face = "bold"))
-ggsave(recallinv, file="output/qmp_acs/qmp_vs_acs_invtaxa_recall_metadata.pdf", device="pdf", 
-       width=11, height=3.5)
+ggsave(recallinv, file="output/qmp_acs/qmp_vs_acs_opportunist_recall_metadata.pdf", device="pdf", 
+       width=8, height=3,useDingbats=FALSE)
 
 
 pub_plot <- ggarrange(recallall, fprall, fprinv, ncol=1, nrow=3, labels="auto",legend="right")

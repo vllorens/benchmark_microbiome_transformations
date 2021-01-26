@@ -128,15 +128,65 @@ for(numberofzerostoaccept in c(0.05, 0.1, 0.2, 0.4, 0.5)){ # loop over allowed p
                     quote = FALSE, row.names = TRUE, col.names=T, sep="\t")
     }
     
-    # the QMP data comes from multiplying rmp data by a factor to get numbers proportional to the number of counts
+    # the QMP data comes from rarefaction to even sampling depth the sequencing data and then scaling to total counts
     # i.e. first rarefying to even sampling depth
+    
+    # first generate random counts (as estimated from flow cytometry) with a correlation ~90% with the actual counts from the simulation
+    cor_counts_min <- 0.85
+    cor_counts_max <- 0.95
+    
+    # function to generate correlated data
+    # function from https://stats.stackexchange.com/questions/15011/generate-a-random-variable-with-a-defined-correlation-to-an-existing-variables
+    complement <- function(y, rho, x) { 
+        if (missing(x)) x <- rnorm(length(y)) 
+        y.perp <- residuals(lm(x ~ y))
+        rho * sd(y.perp) * y + y.perp * sd(y) * sqrt(1 - rho^2)
+    }
+    
+    
     for(file in list.files("data/seq_matrices", full.names = T)){
         filename <- basename(file) %>% 
             gsub(x=., pattern="seqOut_taxonomy", replacement="QMP_taxonomy")
         original_file <- paste0("data/tax_matrices/", gsub(filename, pattern="QMP_", replacement=""))
+        # original counts
         counts <- read.table(original_file, header=T, stringsAsFactors=F, sep="\t") %>% 
             apply(., 2, sum) %>% 
             as.data.frame()
+        # generate correlated counts
+        isvalid <- F
+        while(isvalid==F){
+            corr_counts <- runif(1, cor_counts_min, cor_counts_max)
+            logcounts <- log(counts[,1])
+            counts_fc <- complement(y=logcounts, rho=corr_counts)
+            # scale to ensure that range is the same
+            counts_fc_scaled <- (counts_fc - min(counts_fc))/(max(counts_fc)-min(counts_fc)) * (max(logcounts) - min(logcounts)) + min(logcounts) 
+            # ensure all counts are positive (sometimes negative numbers may be generated)
+            counts_fc_scaled <- abs(counts_fc_scaled)
+            # validate that correlation still holds
+            correlation = cor.test(exp(counts_fc_scaled),counts[,1], exact = F)$estimate
+            correlation2 <- cor.test(counts_fc_scaled,logcounts, exact = F)$estimate
+            if(correlation>cor_counts_min & correlation2>cor_counts_min){
+                isvalid <- T
+            }
+        }
+        counts_fc_scaled <- exp(counts_fc_scaled)
+        seqcounts <- read.table(file, header=T, stringsAsFactors=F, sep="\t") %>% 
+            apply(., 2, sum) %>% 
+            as.data.frame()
+        counts_fc_scaled <- as.data.frame(counts_fc_scaled)
+        rownames(counts_fc_scaled) <- rownames(counts)
+        write.table(counts_fc_scaled, file = paste0("data/counts_estimated/countsEstimated_", filename), 
+                    quote = FALSE, row.names = TRUE, col.names=T, sep="\t")
+    }
+    
+    
+    # then scale the counts
+    for(file in list.files("data/seq_matrices", full.names = T)){
+        filename <- basename(file) %>% 
+            gsub(x=., pattern="seqOut_taxonomy", replacement="QMP_taxonomy")
+        # read estimated counts
+        counts <- read.table(paste0("data/counts_estimated/countsEstimated_", filename), header=T, stringsAsFactors=F, sep="\t") 
+        
         seq <- read.table(file, header=T, stringsAsFactors=F, sep="\t")
         QMP <- rarefy_even_sampling_depth(cnv_corrected_abundance_table = seq, cell_counts_table = counts)
         write.table(QMP, file = paste0("data/qmp_matrices/", filename), 
@@ -147,14 +197,15 @@ for(numberofzerostoaccept in c(0.05, 0.1, 0.2, 0.4, 0.5)){ # loop over allowed p
     # i.e. without first rarefying to even sampling depth
     for(file in list.files("data/seq_matrices", full.names = T)){
         filename <- basename(file) %>% 
+            gsub(x=., pattern="seqOut_taxonomy", replacement="QMP_taxonomy")
+        # read estimated counts
+        counts <- read.table(paste0("data/counts_estimated/countsEstimated_", filename), header=T, stringsAsFactors=F, sep="\t") 
+        filename <- basename(file) %>% 
             gsub(x=., pattern="seqOut_taxonomy", replacement="ACS_taxonomy")
-        original_file <- paste0("data/tax_matrices/", gsub(filename, pattern="ACS_", replacement=""))
-        counts <- read.table(original_file, header=T, stringsAsFactors=F, sep="\t") %>% 
-            apply(., 2, sum)
         seq <- read.table(file, header=T, stringsAsFactors=F, sep="\t")
         counts_seq <- apply(seq, 2, sum)
         factors <- counts/counts_seq
-        ACS <- sweep(seq, MARGIN = 2, factors, '*')
+        ACS <- sweep(seq, MARGIN = 2, factors[,1], '*')
         write.table(ACS, file = paste0("data/acs_matrices/", filename), 
                     quote = FALSE, row.names = TRUE, col.names=T, sep="\t")
     }
@@ -311,7 +362,7 @@ for(numberofzerostoaccept in c(0.05, 0.1, 0.2, 0.4, 0.5)){ # loop over allowed p
         tax_matrix <- tax_matrix[taxa_to_keep,]
         # transform data
         tax_matrix <- t(zCompositions::cmultRepl(X = t(tax_matrix), output="counts"))
-        tax_matrix <- t(codaSeq.clr(tax_matrix, samples.by.row=F))
+        tax_matrix <- codaSeq.clr(tax_matrix, samples.by.row=F)
         # read metadata file
         filename_metadata <- gsub(filename, pattern="seqOut_", replacement="")
         metadata_matrix <- read.table(paste0("data/metadata_matrices/metadata_", filename_metadata))
@@ -907,7 +958,8 @@ for(numberofzerostoaccept in c(0.05, 0.1, 0.2, 0.4, 0.5)){ # loop over allowed p
     write_tsv(results, paste0("output/taxon_prevalence/statistics_taxonmetadata_correlation_", numberofzerostoaccept, ".tsv"), col_names = T)
 }
 
-mycolors <- colorRampPalette(brewer.pal(11, "Spectral"))(13)
+#### Assess performance of the methods (taxon-taxon) ####
+mycolors <- palette=inlmisc::GetTolColors(13, scheme = "sunset")
 r05 <- read_tsv("output/taxon_prevalence/statistics_taxontaxon_correlation_0.05.tsv")
 r10 <- read_tsv("output/taxon_prevalence/statistics_taxontaxon_correlation_0.1.tsv")
 r20 <- read_tsv("output/taxon_prevalence/statistics_taxontaxon_correlation_0.2.tsv")
@@ -943,7 +995,7 @@ p1 <- ggline(rr %>% dplyr::filter(datatable=="all"), x = "num_samples", y = "fal
 ggsave(p1, filename="output/taxon_prevalence/plot_zeros_taxontaxon_FPR.pdf", device="pdf", width=11, height=3.5, useDingbats=F)
 
 
-
+#### Assess performance of the methods (taxon-metadata) ####
 r05 <- read_tsv("output/taxon_prevalence/statistics_taxonmetadata_correlation_0.05.tsv")
 r10 <- read_tsv("output/taxon_prevalence/statistics_taxonmetadata_correlation_0.1.tsv")
 r20 <- read_tsv("output/taxon_prevalence/statistics_taxonmetadata_correlation_0.2.tsv")

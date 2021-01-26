@@ -14,6 +14,7 @@ suppressPackageStartupMessages(library(ggpubr))
 suppressPackageStartupMessages(library(phyloseq))
 suppressPackageStartupMessages(library(ggsignif))
 suppressPackageStartupMessages(library(gdata))
+suppressPackageStartupMessages(library(inlmisc))
 
 # load required functions
 source("R/metadata.R")
@@ -29,6 +30,7 @@ system("mkdir -p data/rmp_matrices")
 system("mkdir -p data/qmp_matrices")
 system("mkdir -p data/acs_matrices")
 system("mkdir -p data/metadata_matrices")
+system("mkdir -p data/counts_estimated")
 system("mkdir -p output/rawdataplots")
 
 # clean these folders and remove all previous results (if any) 
@@ -37,6 +39,7 @@ system("rm -r data/seq_matrices/*")
 system("rm -r data/rmp_matrices/*")
 system("rm -r data/qmp_matrices/*")
 system("rm -r data/acs_matrices/*")
+system("rm -r data/counts_estimated/*")
 system("rm -r data/metadata_matrices/*")
 system("rm -r output/rawdataplots/*")
 
@@ -117,13 +120,63 @@ for(file in list.files("data/seq_matrices", full.names = T)){
 
 # the QMP data comes from rarefaction to even sampling depth the sequencing data and then scaling to total counts
 # i.e. first rarefying to even sampling depth
+
+# first generate random counts (as estimated from flow cytometry) with a correlation ~90% with the actual counts from the simulation
+cor_counts_min <- 0.85
+cor_counts_max <- 0.95
+
+# function to generate correlated data
+# function from https://stats.stackexchange.com/questions/15011/generate-a-random-variable-with-a-defined-correlation-to-an-existing-variables
+complement <- function(y, rho, x) { 
+    if (missing(x)) x <- rnorm(length(y)) 
+    y.perp <- residuals(lm(x ~ y))
+    rho * sd(y.perp) * y + y.perp * sd(y) * sqrt(1 - rho^2)
+}
+
+
 for(file in list.files("data/seq_matrices", full.names = T)){
     filename <- basename(file) %>% 
         gsub(x=., pattern="seqOut_taxonomy", replacement="QMP_taxonomy")
     original_file <- paste0("data/tax_matrices/", gsub(filename, pattern="QMP_", replacement=""))
+    # original counts
     counts <- read.table(original_file, header=T, stringsAsFactors=F, sep="\t") %>% 
         apply(., 2, sum) %>% 
         as.data.frame()
+    # generate correlated counts
+    isvalid <- F
+    while(isvalid==F){
+        corr_counts <- runif(1, cor_counts_min, cor_counts_max)
+        logcounts <- log(counts[,1])
+        counts_fc <- complement(y=logcounts, rho=corr_counts)
+        # scale to ensure that range is the same
+        counts_fc_scaled <- (counts_fc - min(counts_fc))/(max(counts_fc)-min(counts_fc)) * (max(logcounts) - min(logcounts)) + min(logcounts) 
+        # ensure all counts are positive (sometimes negative numbers may be generated)
+        counts_fc_scaled <- abs(counts_fc_scaled)
+        # validate that correlation still holds
+        correlation = cor.test(exp(counts_fc_scaled),counts[,1], exact = F)$estimate
+        correlation2 <- cor.test(counts_fc_scaled,logcounts, exact = F)$estimate
+        if(correlation>cor_counts_min & correlation2>cor_counts_min){
+            isvalid <- T
+        }
+    }
+    counts_fc_scaled <- exp(counts_fc_scaled)
+    seqcounts <- read.table(file, header=T, stringsAsFactors=F, sep="\t") %>% 
+        apply(., 2, sum) %>% 
+        as.data.frame()
+    counts_fc_scaled <- as.data.frame(counts_fc_scaled)
+    rownames(counts_fc_scaled) <- rownames(counts)
+    write.table(counts_fc_scaled, file = paste0("data/counts_estimated/countsEstimated_", filename), 
+                quote = FALSE, row.names = TRUE, col.names=T, sep="\t")
+}
+
+
+# then scale the counts
+for(file in list.files("data/seq_matrices", full.names = T)){
+    filename <- basename(file) %>% 
+        gsub(x=., pattern="seqOut_taxonomy", replacement="QMP_taxonomy")
+    # read estimated counts
+    counts <- read.table(paste0("data/counts_estimated/countsEstimated_", filename), header=T, stringsAsFactors=F, sep="\t") 
+    
     seq <- read.table(file, header=T, stringsAsFactors=F, sep="\t")
     QMP <- rarefy_even_sampling_depth(cnv_corrected_abundance_table = seq, cell_counts_table = counts)
     write.table(QMP, file = paste0("data/qmp_matrices/", filename), 
@@ -134,14 +187,15 @@ for(file in list.files("data/seq_matrices", full.names = T)){
 # i.e. without first rarefying to even sampling depth
 for(file in list.files("data/seq_matrices", full.names = T)){
     filename <- basename(file) %>% 
+        gsub(x=., pattern="seqOut_taxonomy", replacement="QMP_taxonomy")
+    # read estimated counts
+    counts <- read.table(paste0("data/counts_estimated/countsEstimated_", filename), header=T, stringsAsFactors=F, sep="\t") 
+    filename <- basename(file) %>% 
         gsub(x=., pattern="seqOut_taxonomy", replacement="ACS_taxonomy")
-    original_file <- paste0("data/tax_matrices/", gsub(filename, pattern="ACS_", replacement=""))
-    counts <- read.table(original_file, header=T, stringsAsFactors=F, sep="\t") %>% 
-        apply(., 2, sum)
     seq <- read.table(file, header=T, stringsAsFactors=F, sep="\t")
     counts_seq <- apply(seq, 2, sum)
     factors <- counts/counts_seq
-    ACS <- sweep(seq, MARGIN = 2, factors, '*')
+    ACS <- sweep(seq, MARGIN = 2, factors[,1], '*')
     write.table(ACS, file = paste0("data/acs_matrices/", filename), 
                 quote = FALSE, row.names = TRUE, col.names=T, sep="\t")
 }
@@ -193,6 +247,9 @@ for(file in list.files("data/tax_matrices", full.names = T)){
         as.matrix() %>% 
         apply(.,2,sum)
     spread <- range(original_counts)[2]/range(original_counts)[1]
+    # read estimated counts file
+    est_counts <- read.table(paste0("data/counts_estimated/countsEstimated_QMP_", filename), header=T, stringsAsFactors=F, sep="\t")
+    correlation_counts <- cor(original_counts, est_counts[,1])
     # correlation of taxa w number of cell counts
     taxoncor <- counts_taxa_correlation(tax_matrix, original_counts)
     taxoncor[[2]] <- p.adjust(taxoncor[[2]], method="BH")
@@ -239,6 +296,7 @@ for(file in list.files("data/tax_matrices", full.names = T)){
     # put everythiing together
     matrix_stats_current <- tibble(matrix=matrix_name, spread_type=spread_name,
                                    scenario=scenario_name, spread=spread, 
+                                   correlation_counts=correlation_counts,
                                    
                                    non_correlated_taxa=not_cor,
                                    positively_correlated_taxa=pos_cor,
@@ -445,6 +503,8 @@ for(file in list.files("data/tax_matrices", full.names = T)){
                                     replacement=paste0(bloomer, "_Bloomer"))
         top10sp <- sort(top10sp)
         legendtitle <- "Top 10 and special taxa"
+        simplifiedData$taxa <- factor(simplifiedData$taxa)
+        
     }
     if(scenario_name=="Dysbiosis"){
         simplifiedData$taxa <- gsub(simplifiedData$taxa, pattern=opportunist, 
@@ -453,10 +513,13 @@ for(file in list.files("data/tax_matrices", full.names = T)){
                       replacement=paste0(opportunist, "_Opportunist"))
         top10sp <- sort(top10sp)
         legendtitle <- "Top 10 and special taxa"
+        simplifiedData$taxa <- factor(simplifiedData$taxa)
     }
     if(scenario_name=="Healthy"){ # No special taxa
         top10sp <- sort(top10sp)
         legendtitle <- "Top 10 taxa"
+        simplifiedData$taxa <- factor(simplifiedData$taxa)
+        
     }
     
     
@@ -465,8 +528,8 @@ for(file in list.files("data/tax_matrices", full.names = T)){
                     legend.title=legendtitle, main=paste0("Absolute counts - simulation - Matrix: ", matrix_name, " - Spread: ", spread_name),
                     font.main = c(14,"bold", "black"), font.x = c(12, "bold"), 
                     font.y=c(12,"bold"), xlab="Sample", ylab="Absolute cell counts") + 
-        scale_colour_brewer(palette="Spectral", na.value="grey", labels = c(top10sp, "Other")) +
-        scale_fill_brewer(palette="Spectral",  na.value="grey", labels = c(top10sp, "Other")) +
+        scale_colour_manual(values=rev(inlmisc::GetColors(10, scheme = "sunset")), na.value="grey", labels = c(levels(simplifiedData$taxa), "Other")) +
+        scale_fill_manual(values=rev(inlmisc::GetColors(10, scheme = "sunset")),  na.value="grey", labels = c(levels(simplifiedData$taxa), "Other")) +
         theme_bw() + 
         theme(axis.text.x=element_blank(),
               axis.ticks.x = element_blank()) + 

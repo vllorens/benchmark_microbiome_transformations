@@ -12,6 +12,8 @@ suppressPackageStartupMessages(library(tidyverse))
 suppressPackageStartupMessages(library(ggpubr))
 suppressPackageStartupMessages(library(phyloseq))
 suppressPackageStartupMessages(library(ggsignif))
+suppressPackageStartupMessages(library(rstatix))
+suppressPackageStartupMessages(library(inlmisc))
 
 # load required functions
 source("R/estimateZeros.R")
@@ -25,10 +27,10 @@ source("R/counts_taxa_correlation.R")
 # source("scripts/generate_data.R") # this is needed to generate the original matrices and metadata only
 
 # create folders, if not existing
-system("mkdir -p output/qmp_acs")
+system("mkdir -p output/qmp_acs_all")
 
 # clean these folders and remove all previous results (if any) 
-system("rm -r output/qmp_acs/*")
+system("rm -r output/qmp_acs_all/*")
 
 set.seed(777)
 
@@ -62,6 +64,8 @@ for(file in list.files("data/tax_matrices", full.names = T)){
     spread_name <- strsplit(filename, split="_")[[1]][3]
     scenario_name <- strsplit(filename, split="_")[[1]][5] %>% gsub(., pattern="\\.tsv", replacement="")
     counts_original <- apply(tax_matrix, 2, sum) %>% as.data.frame
+    filecounts <- gsub(file, pattern="tax_matrices/taxonomy", replacement="counts_estimated/countsEstimated_QMP_taxonomy")
+    counts_estimated <- read.table(filecounts,  header=T, stringsAsFactors=F, sep="\t")
     
     # read metadata
     metadatafile <- read.table(paste0("data/metadata_matrices/metadata_", filename), header=T, stringsAsFactors = F)
@@ -85,8 +89,8 @@ for(file in list.files("data/tax_matrices", full.names = T)){
         rownames(seqOut) <- rownames(tax_matrix)
         
         # generate QMP and ACS data for this specific sequencing depth
-        qmp <- rarefy_even_sampling_depth(cnv_corrected_abundance_table = seqOut, cell_counts_table = counts_original)
-        normFactor <- apply(tax_matrix,2,sum)/apply(seqOut,2,sum)
+        qmp <- rarefy_even_sampling_depth(cnv_corrected_abundance_table = seqOut, cell_counts_table = counts_estimated)
+        normFactor <- counts_estimated[,1]/apply(seqOut,2,sum)
         acs <- sweep(seqOut, MARGIN = 2, normFactor, '*')
         
         #correlations on qmp/ACS data (all taxon-metadata correlations, to determine Precision and Recall)
@@ -212,13 +216,14 @@ for(file in list.files("data/tax_matrices", full.names = T)){
     
     
     result <- tibble(fdr_qmp, fdr_acs, spread_v, scenario_v, fp_qmp, fp_acs, tp_qmp, tp_acs, pr_qmp, pr_acs, depths, matname, valuesused)
-    write_tsv(result, "output/qmp_acs/qmp_vs_acs_taxonmetadata_depths.tsv", col_names = T)
+    write_tsv(result, "output/qmp_acs_all/qmp_vs_acs_all_taxonmetadata_depths.tsv", col_names = T)
 }
 
+mycolors=c("#83B8D7", "#A50026")
 
 #### Assess performance of both QMP and ACS ####
 
-result <- read_tsv("output/qmp_acs/qmp_vs_acs_taxonmetadata_depths.tsv", col_names=T)
+result <- read_tsv("output/qmp_acs_all/qmp_vs_acs_all_taxonmetadata_depths.tsv", col_names=T)
 resultlong <- result %>% 
     dplyr::filter(valuesused=="all") %>% 
     dplyr::select(-c(fdr_qmp, fdr_acs, tp_qmp, tp_acs, pr_qmp, pr_acs, valuesused)) %>% 
@@ -231,7 +236,7 @@ resultlong$spread_v <- resultlong$spread_v %>% gsub(., pattern="medium", replace
 resultlong$spread_v <- resultlong$spread_v %>% gsub(., pattern="high", replacement="High")
 resultlong$spread_v <- factor(resultlong$spread_v, levels=c("Low", "Medium", "High"))
 fprall <- ggline(resultlong, x="depths", y="FPR", color="method", facet.by="spread_v",
-       numeric.x.axis = T, add = "mean_se", palette=get_palette("Spectral", k = 11)[c(2,10)], xlab="Sequencing reads", 
+       numeric.x.axis = T, add = "mean_se", palette=mycolors, xlab="Sequencing reads", 
        ylab="FPR [FP/FP+TN]", title = "Taxa-metadata associations - FPR", xscale="log10", .format=T,
        legend.title="Method") + 
     theme_bw() + 
@@ -240,11 +245,11 @@ fprall <- ggline(resultlong, x="depths", y="FPR", color="method", facet.by="spre
     theme(axis.title = element_text(face = "bold"), 
           plot.title = element_text(size = 14, 
                                     face = "bold"), legend.title = element_text(face = "bold"))
-ggsave(fprall, file="output/qmp_acs/qmp_vs_acs_alltaxa_fdr_metadata.pdf", device="pdf", 
+ggsave(fprall, file="output/qmp_acs_all/qmp_vs_acs_all_alltaxa_fdr_metadata.pdf", device="pdf", 
        width=11, height=3.5)
 
 
-result <- read_tsv("output/qmp_acs/qmp_vs_acs_taxonmetadata_depths.tsv", col_names=T)
+result <- read_tsv("output/qmp_acs_all/qmp_vs_acs_all_taxonmetadata_depths.tsv", col_names=T)
 resultlong <- result %>% 
     dplyr::filter(valuesused=="all") %>% 
     dplyr::select(-c(fdr_qmp, fdr_acs, tp_qmp, tp_acs, fp_qmp, fp_acs, valuesused)) %>% 
@@ -259,7 +264,7 @@ resultlong$spread_v <- resultlong$spread_v %>% gsub(., pattern="high", replaceme
 resultlong$spread_v <- factor(resultlong$spread_v, levels=c("Low", "Medium", "High"))
 
 precisionall <- ggline(resultlong, x="depths", y="Precision", color="method", facet.by="spread_v",
-       numeric.x.axis = T, add = "mean_se", palette=get_palette("Spectral", k = 11)[c(2,10)], xlab="Sequencing reads", 
+       numeric.x.axis = T, add = "mean_se", palette=mycolors, xlab="Sequencing reads", 
        ylab="Precision [TP/TP+FP]", title = "Taxa-metadata associations - Precision",xscale="log10", .format=T,
        legend.title="Method") + 
   
@@ -269,11 +274,11 @@ precisionall <- ggline(resultlong, x="depths", y="Precision", color="method", fa
     theme(axis.title = element_text(face = "bold"), 
           plot.title = element_text(size = 14, 
                                     face = "bold"), legend.title = element_text(face = "bold"))
-ggsave(precisionall, file="output/qmp_acs/qmp_vs_acs_alltaxa_precision_metadata.pdf", device="pdf", 
+ggsave(precisionall, file="output/qmp_acs_all/qmp_vs_acs_all_alltaxa_precision_metadata.pdf", device="pdf", 
        width=11, height=3.5)
 
 
-result <- read_tsv("output/qmp_acs/qmp_vs_acs_taxonmetadata_depths.tsv", col_names=T)
+result <- read_tsv("output/qmp_acs_all/qmp_vs_acs_all_taxonmetadata_depths.tsv", col_names=T)
 resultlong <- result %>% 
     dplyr::filter(valuesused=="all") %>% 
     dplyr::select(-c(fdr_qmp, fdr_acs, pr_qmp, pr_acs, fp_qmp, fp_acs, valuesused)) %>% 
@@ -288,7 +293,7 @@ resultlong$spread_v <- resultlong$spread_v %>% gsub(., pattern="high", replaceme
 resultlong$spread_v <- factor(resultlong$spread_v, levels=c("Low", "Medium", "High"))
 
 recallall <- ggline(resultlong, x="depths", y="Recall", color="method", facet.by="spread_v",
-       numeric.x.axis = T, add = "mean_se", palette=get_palette("Spectral", k = 11)[c(2,10)], xlab="Sequencing reads", 
+       numeric.x.axis = T, add = "mean_se", palette=mycolors, xlab="Sequencing reads", 
        ylab="Recall [TP/TP+FN]", title = "Taxa-metadata associations - Recall", xscale="log10", .format=T,
        legend.title="Method") + 
     theme_bw() + 
@@ -297,13 +302,13 @@ recallall <- ggline(resultlong, x="depths", y="Recall", color="method", facet.by
     theme(axis.title = element_text(face = "bold"), 
           plot.title = element_text(size = 14, 
                                     face = "bold"), legend.title = element_text(face = "bold"))
-ggsave(recallall, file="output/qmp_acs/qmp_vs_acs_alltaxa_recall_metadata.pdf", device="pdf", 
+ggsave(recallall, file="output/qmp_acs_all/qmp_vs_acs_all_alltaxa_recall_metadata.pdf", device="pdf", 
        width=11, height=3.5)
 
 
 #### Assess performance of both QMP and ACS (invariant taxa only, no dysbiosis) ####
 
-result <- read_tsv("output/qmp_acs/qmp_vs_acs_taxonmetadata_depths.tsv", col_names=T)
+result <- read_tsv("output/qmp_acs_all/qmp_vs_acs_all_taxonmetadata_depths.tsv", col_names=T)
 resultlong <- result %>% 
     dplyr::filter(valuesused=="invariant") %>% 
    # dplyr::filter(scenario_v!="Dysbiosis") %>% 
@@ -319,7 +324,7 @@ resultlong$spread_v <- resultlong$spread_v %>% gsub(., pattern="medium", replace
 resultlong$spread_v <- resultlong$spread_v %>% gsub(., pattern="high", replacement="High")
 resultlong$spread_v <- factor(resultlong$spread_v, levels=c("Low", "Medium", "High"))
 fprinv <- ggline(resultlong, x="depths", y="FPR", color="method", facet.by="spread_v",
-       numeric.x.axis = T, add = "mean_se", palette=get_palette("Spectral", k = 11)[c(2,10)], xlab="Sequencing reads", 
+       numeric.x.axis = T, add = "mean_se", palette=mycolors, xlab="Sequencing reads", 
        ylab="FPR [FP/FP+TN]", title = "Invariant taxa-metadata associations - FPR",
        legend.title="Method", xscale="log10", .format=T) + 
     theme_bw() + 
@@ -328,11 +333,11 @@ fprinv <- ggline(resultlong, x="depths", y="FPR", color="method", facet.by="spre
     theme(axis.title = element_text(face = "bold"), 
           plot.title = element_text(size = 14, 
                                     face = "bold"), legend.title = element_text(face = "bold"))
-ggsave(fprinv, file="output/qmp_acs/qmp_vs_acs_invtaxa_fdr_metadata.pdf", device="pdf", 
+ggsave(fprinv, file="output/qmp_acs_all/qmp_vs_acs_all_invtaxa_fdr_metadata.pdf", device="pdf", 
        width=11, height=3.5)
 
 
-result <- read_tsv("output/qmp_acs/qmp_vs_acs_taxonmetadata_depths.tsv", col_names=T)
+result <- read_tsv("output/qmp_acs_all/qmp_vs_acs_all_taxonmetadata_depths.tsv", col_names=T)
 resultlong <- result %>% 
     dplyr::filter(valuesused=="invariant") %>% 
     #dplyr::filter(scenario_v!="Dysbiosis") %>% 
@@ -348,7 +353,7 @@ resultlong$spread_v <- resultlong$spread_v %>% gsub(., pattern="high", replaceme
 resultlong$spread_v <- factor(resultlong$spread_v, levels=c("Low", "Medium", "High"))
 
 precisioninv <- ggline(resultlong, x="depths", y="Precision", color="method", facet.by="spread_v",
-       numeric.x.axis = T, add = "mean_se", palette=get_palette("Spectral", k = 11)[c(2,10)], xlab="Sequencing reads", 
+       numeric.x.axis = T, add = "mean_se", palette=mycolors, xlab="Sequencing reads", 
        ylab="Precision [TP/TP+FP]", title = "Invariant taxa-metadata associations - Precision",
        legend.title="Method", xscale="log10", .format=T) + 
     theme_bw() + 
@@ -357,11 +362,11 @@ precisioninv <- ggline(resultlong, x="depths", y="Precision", color="method", fa
     theme(axis.title = element_text(face = "bold"), 
           plot.title = element_text(size = 14, 
                                     face = "bold"), legend.title = element_text(face = "bold"))
-ggsave(precisioninv, file="output/qmp_acs/qmp_vs_acs_invtaxa_precision_metadata.pdf", device="pdf", 
+ggsave(precisioninv, file="output/qmp_acs_all/qmp_vs_acs_all_invtaxa_precision_metadata.pdf", device="pdf", 
        width=11, height=3.5)
 
 
-result <- read_tsv("output/qmp_acs/qmp_vs_acs_taxonmetadata_depths.tsv", col_names=T)
+result <- read_tsv("output/qmp_acs_all/qmp_vs_acs_all_taxonmetadata_depths.tsv", col_names=T)
 resultlong <- result %>% 
     dplyr::filter(valuesused=="invariant") %>% 
     #dplyr::filter(scenario_v!="Dysbiosis") %>% 
@@ -377,7 +382,7 @@ resultlong$spread_v <- resultlong$spread_v %>% gsub(., pattern="high", replaceme
 resultlong$spread_v <- factor(resultlong$spread_v, levels=c("Low", "Medium", "High"))
 
 recallinv <- ggline(resultlong, x="depths", y="Recall", color="method", facet.by="spread_v",
-       numeric.x.axis = T, add = "mean_se", palette=get_palette("Spectral", k = 11)[c(2,10)], xlab="Sequencing reads", 
+       numeric.x.axis = T, add = "mean_se", palette=mycolors, xlab="Sequencing reads", 
        ylab="Recall [TP/TP+FN]", title = "Invariant taxa-metadata associations - Recall",
        legend.title="Method", xscale="log10", .format=T) + 
     theme_bw() + 
@@ -386,12 +391,12 @@ recallinv <- ggline(resultlong, x="depths", y="Recall", color="method", facet.by
     theme(axis.title = element_text(face = "bold"), 
           plot.title = element_text(size = 14, 
                                     face = "bold"), legend.title = element_text(face = "bold"))
-ggsave(recallinv, file="output/qmp_acs/qmp_vs_acs_invtaxa_recall_metadata.pdf", device="pdf", 
+ggsave(recallinv, file="output/qmp_acs_all/qmp_vs_acs_all_invtaxa_recall_metadata.pdf", device="pdf", 
        width=11, height=3.5)
 
 
 pub_plot <- ggarrange(recallall, fprall, fprinv, ncol=1, nrow=3, labels="auto",legend="right")
-ggsave(pub_plot, file="output/qmp_acs/qmp_vs_acs_summary.pdf", device="pdf", 
+ggsave(pub_plot, file="output/qmp_acs_all/qmp_vs_acs_all_summary.pdf", device="pdf", 
        width=8, height=9,useDingbats=FALSE)
 
 
