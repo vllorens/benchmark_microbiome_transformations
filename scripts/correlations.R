@@ -651,7 +651,7 @@ for(file in list.files("data/seq_matrices", full.names = T)){
 }
 set.seed(777)
 
-# TSS-AST
+# AST
 for(file in list.files("data/seq_matrices", full.names = T)){
     # read file and select only those taxa to keep
     filename <- basename(file)

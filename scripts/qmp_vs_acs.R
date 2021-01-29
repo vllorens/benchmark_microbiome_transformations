@@ -24,7 +24,7 @@ source("R/rarefy_even_sampling_depth.R")
 source("R/counts_taxa_correlation.R")
 
 # If it has not been run yet, it is necessary to run the script to generate the data (scripts/generate_data.R)
-# source("scripts/generate_data.R") # this is needed to generate the original matrices and metadata only
+source("scripts/generate_data.R") # this is needed to generate the original matrices and metadata only
 
 # create folders, if not existing
 system("mkdir -p output/qmp_acs_all")

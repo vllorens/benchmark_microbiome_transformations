@@ -53,7 +53,8 @@ for(numberofzerostoaccept in c(0.05, 0.1, 0.2, 0.4, 0.5)){ # loop over allowed p
     system("mkdir -p data/metadata_matrices")
     system("mkdir -p data/correlations_taxontaxon")
     system("mkdir -p data/correlations_taxonmetadata")
-
+    system("mkdir -p data/counts_estimated")
+    
     # remove all previous results (if any)
     system("rm -rf data/tax_matrices/*")
     system("rm -rf data/seq_matrices/*")
@@ -63,7 +64,8 @@ for(numberofzerostoaccept in c(0.05, 0.1, 0.2, 0.4, 0.5)){ # loop over allowed p
     system("rm -rf data/metadata_matrices/*")
     system("rm -rf data/correlations_taxontaxon/*")
     system("rm -rf data/correlations_taxonmetadata/*")
-
+    system("rm -rf data/counts_estimated/*")
+    
     # create additional folders for the reference data (on the real matrices)
     system("mkdir -p data/correlations_taxontaxon/reference")
     system("mkdir -p data/correlations_taxonmetadata/reference")
@@ -84,11 +86,13 @@ for(numberofzerostoaccept in c(0.05, 0.1, 0.2, 0.4, 0.5)){ # loop over allowed p
         }
         ind_matrix <- ind_matrix %>% 
             as.data.frame()
-        ind_matrix <- ind_matrix[,sample(colnames(ind_matrix), replace = F, size = 300)]
+        ind_matrix <- ind_matrix[,sample(colnames(ind_matrix), replace = F, size = 200)]
         spread <- (apply(ind_matrix,2,sum) %>% max)/(apply(ind_matrix,2,sum) %>% min) 
-        if(spread<10){
+        if(spread<20){
             spread_cat <- "low"
-        } else{
+        } else if(spread >= 20 & spread < 40){
+            spread_cat <- "medium"
+        }else{
             spread_cat <- "high"
         }
         write.table(ind_matrix, paste0("data/tax_matrices/taxonomy_", mt, "_", spread_cat, "_spread_", scenario, ".tsv"), 
@@ -973,9 +977,9 @@ r100 <- r100 %>% mutate(num_samples="50")
 rr <- bind_rows(r05,r10,r20,r50,r100)
 rr$num_samples <- factor(rr$num_samples)
 rr$scen <- factor(rr$scen, levels=c("Healthy", "Blooming",  "Dysbiosis"))
-rr$method <- factor(rr$method, levels=c("Seq", "Rel", "AST", "CLR", "RMP", "CSS", "GMPR",
-                                        "RLE", "TMM", "UQ", "VST",
-                                        "ACS", "QMP"))
+rr$method <- factor(rr$method, llevels=c("Seq", "Rel", "RMP", "AST", "CLR", "CSS", "GMPR",
+                                         "RLE", "TMM", "UQ", "VST",
+                                         "ACS", "QMP"))
 rr$spread <- factor(rr$spread, levels=c("low", "medium", "high"))
 
 p1 <- ggline(rr %>% dplyr::filter(datatable=="all"), x = "num_samples", y = "Precision", 
@@ -1008,7 +1012,7 @@ r50 <- r50 %>% mutate(num_samples="60")
 r100 <- r100 %>% mutate(num_samples="50")
 rr <- bind_rows(r05,r10,r20,r50,r100)
 rr$num_samples <- factor(rr$num_samples)
-rr$method <- factor(rr$method, levels=c("Seq", "Rel", "AST", "CLR", "RMP", "CSS", "GMPR",
+rr$method <- factor(rr$method, levels=c("Seq", "Rel", "RMP", "AST", "CLR", "CSS", "GMPR",
                                         "RLE", "TMM", "UQ", "VST",
                                         "ACS", "QMP"))
 rr$spread <- factor(rr$spread, levels=c("low", "medium", "high"))

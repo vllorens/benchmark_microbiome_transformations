@@ -47,6 +47,7 @@ for(numberofsamplestomake in c(20,50,100,200,500,1000)){
     system("mkdir -p data/metadata_matrices")
     system("mkdir -p data/correlations_taxontaxon")
     system("mkdir -p data/correlations_taxonmetadata")
+    system("mkdir -p data/counts_estimated")
     
     # remove all previous results (if any)
     system("rm -rf data/tax_matrices/*")
@@ -57,6 +58,7 @@ for(numberofsamplestomake in c(20,50,100,200,500,1000)){
     system("rm -rf data/metadata_matrices/*")
     system("rm -rf data/correlations_taxontaxon/*")
     system("rm -rf data/correlations_taxonmetadata/*")
+    system("rm -rf data/counts_estimated/*")
 
     # create additional folders for the reference data (on the real matrices)
     system("mkdir -p data/correlations_taxontaxon/reference")
@@ -81,9 +83,11 @@ for(numberofsamplestomake in c(20,50,100,200,500,1000)){
             as.data.frame()
         ind_matrix <- ind_matrix[,sample(colnames(ind_matrix), replace = F, size = numberofsamplestomake)]
         spread <- (apply(ind_matrix,2,sum) %>% max)/(apply(ind_matrix,2,sum) %>% min) 
-        if(spread<10){
+        if(spread<20){
             spread_cat <- "low"
-        } else{
+        } else if(spread >= 20 & spread < 40){
+            spread_cat <- "medium"
+        }else{
             spread_cat <- "high"
         }
         write.table(ind_matrix, paste0("data/tax_matrices/taxonomy_", mt, "_", spread_cat, "_spread_", scenario, ".tsv"), 
@@ -975,7 +979,7 @@ r500 <- r500 %>% mutate(num_samples="500")
 r1000 <- r1000 %>% mutate(num_samples="1000")
 rr <- bind_rows(r20,r50,r100,r200,r500,r1000)
 
-rr$method <- factor(rr$method, levels=c("Seq", "Rel", "AST", "CLR", "RMP", "CSS", "GMPR",
+rr$method <- factor(rr$method, levels=c("Seq", "Rel", "RMP", "AST", "CLR", "CSS", "GMPR",
                                         "RLE", "TMM", "UQ", "VST",
                                         "ACS", "QMP"))
 rr$spread <- factor(rr$spread, levels=c("low", "medium", "high"))
@@ -1017,7 +1021,7 @@ r500 <- r500 %>% mutate(num_samples="500")
 r1000 <- r1000 %>% mutate(num_samples="1000")
 rr <- bind_rows(r20,r50,r100,r200,r500,r1000)
 
-rr$method <- factor(rr$method, levels=c("Seq", "Rel", "AST", "CLR", "RMP", "CSS", "GMPR",
+rr$method <- factor(rr$method, levels=c("Seq", "Rel", "RMP", "AST", "CLR", "CSS", "GMPR",
                                         "RLE", "TMM", "UQ", "VST",
                                         "ACS", "QMP"))
 rr$spread <- factor(rr$spread, levels=c("low", "medium", "high"))
