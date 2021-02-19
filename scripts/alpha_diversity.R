@@ -653,6 +653,13 @@ toplot$correlation_category <- factor(toplot$correlation_category,
 toplot$method <- factor(toplot$method, levels=c("Real", "Seq", "RMP", "CSS", "GMPR",
                                                "UQ", "RLE", "TMM", "ACS", "QMP"))
 
+kruskal_alphadiv_counts <- cor_richness_counts %>% 
+    group_by(Diversity_index, scenario) %>%
+    rstatix::kruskal_test(cor_counts_diversity~method)
+dunn_alphadiv_counts <- cor_richness_counts %>% 
+    dplyr::filter(Diversity_index %in% c("Observed", "Chao1")) %>% 
+    group_by(Diversity_index, scenario) %>%
+    rstatix::dunn_test(cor_counts_diversity~method)
 
 ps1 <- ggbarplot(toplot, 
           x="method", y="percentage", fill="correlation_category", 
@@ -702,3 +709,7 @@ ggsave("output/alpha_div/alphadiv_observed_example.pdf", device = "pdf", width=1
 
 dunn_rho <- dunn_rho %>% dplyr::filter(!(Diversity_index=="Observed" & scenario=="Dysbiosis"))
 write_tsv(dunn_rho, path="output/alpha_div/dunn_tests.txt")
+write_tsv(kruskal_rho, path="output/alpha_div/kruskal_wallis_tests.txt")
+write_tsv(dunn_alphadiv_counts, path="output/alpha_div/dunn_tests_counts.txt")
+write_tsv(kruskal_alphadiv_counts, path="output/alpha_div/kruskal_wallis_tests_counts.txt")
+

@@ -52,6 +52,7 @@ source("R/taxon_metadata_correlation.R")
 source("R/counts_taxa_correlation.R")
 source("R/GMPR.R")
 source("R/plot_comparisons.R")
+source("R/rarefy_even_sampling_depth.R")
 
 # If it has not been run yet, it is necessary to run the script to generate the data (scripts/generate_data.R)
 # source("scripts/generate_data.R")
@@ -957,6 +958,126 @@ for(file in list.files("data/acs_matrices", full.names = T)){
     write.table(tax_matrix, paste0("data/all_matrices/", filename))
 }
 
+set.seed(777)
+
+# QMP -  no noise (only used for supplementary figure 3c - comparison of false positives in dysbiosis)
+for(file in list.files("data/seq_matrices/", full.names = T)){
+    # read file and select only those taxa to keep
+    filename <- basename(file)
+    taxa_to_keep <- taxaToKeep(filename)
+    tax_matrix <- read.table(file, header=T, stringsAsFactors=F, sep="\t") %>% 
+        as.matrix()
+    # read metadata file
+    filename_metadata <- gsub(filename, pattern="seqOut_", replacement="")
+    metadata_matrix <- read.table(paste0("data/metadata_matrices/metadata_", filename_metadata))
+    # get counts
+    origfile <- paste0("data/tax_matrices/", filename_metadata)
+    counts_data <- read.table(origfile, header=T, stringsAsFactors=F, sep="\t") %>% 
+        as.matrix() %>% 
+        apply(., 2, sum)
+    # transform data
+    tax_matrix <- rarefy_even_sampling_depth(cnv_corrected_abundance_table = tax_matrix, cell_counts_table = as.data.frame(counts_data))
+    tax_matrix <- tax_matrix[taxa_to_keep,]
+    # calculate correlations and pvalues (taxon-taxon)
+    taxon_correlation_object <- taxon_correlation(tax_matrix) 
+    taxon_correlation_object[[2]][upper.tri(taxon_correlation_object[[2]])] <- p.adjust(taxon_correlation_object[[2]][upper.tri(taxon_correlation_object[[2]])], method="BH")
+    # calculate correlations and pvalues (taxon-metadata)
+    metadata_correlation_object <- taxon_metadata_correlation(tax_matrix, metadata_matrix) 
+    metadata_correlation_object[[2]] <- matrix(p.adjust(as.vector(as.matrix(metadata_correlation_object[[2]])), method='fdr'),ncol=ncol(metadata_correlation_object[[2]]))
+    colnames(metadata_correlation_object[[2]]) <- colnames(metadata_correlation_object[[1]])
+    rownames(metadata_correlation_object[[2]]) <- rownames(metadata_correlation_object[[1]])
+    # calculate correlations and pvalues (taxon-counts)
+    counts_correlation_object <- counts_taxa_correlation(tax_matrix, counts_data) 
+    counts_correlation_object[[2]] <- p.adjust(counts_correlation_object[[2]], method="BH")
+    # write output (taxon-taxon)
+    outputname_correlation <- gsub(filename, pattern="seqOut_taxonomy", replacement="taxontaxon_rho_QMPnonoise")
+    outputname_pval <- gsub(filename, pattern="seqOut_taxonomy", replacement="taxontaxon_pvalue_QMPnonoise")
+    write.table(taxon_correlation_object[[1]], 
+                paste0("data/correlations_taxontaxon/", outputname_correlation), 
+                col.names=T, row.names=T, quote=F, sep="\t")
+    write.table(taxon_correlation_object[[2]], 
+                paste0("data/correlations_taxontaxon/", outputname_pval), 
+                col.names=T, row.names=T, quote=F, sep="\t")
+    # write output (taxon-metadata)
+    outputname_correlation <- gsub(filename, pattern="seqOut_taxonomy", replacement="taxonmetadata_rho_QMPnonoise")
+    outputname_pval <- gsub(filename, pattern="seqOut_taxonomy", replacement="taxonmetadata_pvalue_QMPnonoise")
+    write.table(metadata_correlation_object[[1]], 
+                paste0("data/correlations_taxonmetadata/", outputname_correlation), 
+                col.names=T, row.names=T, quote=F, sep="\t")
+    write.table(metadata_correlation_object[[2]], 
+                paste0("data/correlations_taxonmetadata/", outputname_pval), 
+                col.names=T, row.names=T, quote=F, sep="\t")
+    # write output (taxon-counts)
+    outputname_correlation <- gsub(filename, pattern="seqOut_taxonomy", replacement="taxoncounts_rho_QMPnonoise")
+    outputname_pval <- gsub(filename, pattern="seqOut_taxonomy", replacement="taxoncounts_pvalue_QMPnonoise")
+    write.table(counts_correlation_object[[1]], 
+                paste0("data/correlations_taxoncounts/", outputname_correlation), 
+                col.names=T, row.names=T, quote=F, sep="\t")
+    write.table(counts_correlation_object[[2]], 
+                paste0("data/correlations_taxoncounts/", outputname_pval), 
+                col.names=T, row.names=T, quote=F, sep="\t")
+}
+set.seed(777)
+
+# ACS - no noise (only used for supplementary figure 3c - comparison of false positives in dysbiosis)
+for(file in list.files("data/seq_matrices/", full.names = T)){
+    # read file and select only those taxa to keep
+    filename <- basename(file)
+    taxa_to_keep <- taxaToKeep(filename)
+    tax_matrix <- read.table(file, header=T, stringsAsFactors=F, sep="\t") %>% 
+        as.matrix()
+    # read metadata file
+    filename_metadata <- gsub(filename, pattern="seqOut_", replacement="")
+    metadata_matrix <- read.table(paste0("data/metadata_matrices/metadata_", filename_metadata))
+    # get counts
+    origfile <- paste0("data/tax_matrices/", filename_metadata)
+    counts_data <- read.table(origfile, header=T, stringsAsFactors=F, sep="\t") %>% 
+        as.matrix() %>% 
+        apply(., 2, sum)
+    # transform data
+    counts_seq <- apply(tax_matrix, 2, sum)
+    factors <- counts_data/counts_seq
+    tax_matrix <- sweep(tax_matrix, MARGIN = 2, factors, '*')
+    tax_matrix <- tax_matrix[taxa_to_keep,]
+    # calculate correlations and pvalues (taxon-taxon)
+    taxon_correlation_object <- taxon_correlation(tax_matrix) 
+    taxon_correlation_object[[2]][upper.tri(taxon_correlation_object[[2]])] <- p.adjust(taxon_correlation_object[[2]][upper.tri(taxon_correlation_object[[2]])], method="BH")
+    # calculate correlations and pvalues (taxon-metadata)
+    metadata_correlation_object <- taxon_metadata_correlation(tax_matrix, metadata_matrix) 
+    metadata_correlation_object[[2]] <- matrix(p.adjust(as.vector(as.matrix(metadata_correlation_object[[2]])), method='fdr'),ncol=ncol(metadata_correlation_object[[2]]))
+    colnames(metadata_correlation_object[[2]]) <- colnames(metadata_correlation_object[[1]])
+    rownames(metadata_correlation_object[[2]]) <- rownames(metadata_correlation_object[[1]])
+    # calculate correlations and pvalues (taxon-counts)
+    counts_correlation_object <- counts_taxa_correlation(tax_matrix, counts_data) 
+    counts_correlation_object[[2]] <- p.adjust(counts_correlation_object[[2]], method="BH")
+    # write output (taxon-taxon)
+    outputname_correlation <- gsub(filename, pattern="seqOut_taxonomy", replacement="taxontaxon_rho_ACSnonoise")
+    outputname_pval <- gsub(filename, pattern="seqOut_taxonomy", replacement="taxontaxon_pvalue_ACSnonoise")
+    write.table(taxon_correlation_object[[1]], 
+                paste0("data/correlations_taxontaxon/", outputname_correlation), 
+                col.names=T, row.names=T, quote=F, sep="\t")
+    write.table(taxon_correlation_object[[2]], 
+                paste0("data/correlations_taxontaxon/", outputname_pval), 
+                col.names=T, row.names=T, quote=F, sep="\t")
+    # write output (taxon-metadata)
+    outputname_correlation <- gsub(filename, pattern="seqOut_taxonomy", replacement="taxonmetadata_rho_ACSnonoise")
+    outputname_pval <- gsub(filename, pattern="seqOut_taxonomy", replacement="taxonmetadata_pvalue_ACSnonoise")
+    write.table(metadata_correlation_object[[1]], 
+                paste0("data/correlations_taxonmetadata/", outputname_correlation), 
+                col.names=T, row.names=T, quote=F, sep="\t")
+    write.table(metadata_correlation_object[[2]], 
+                paste0("data/correlations_taxonmetadata/", outputname_pval), 
+                col.names=T, row.names=T, quote=F, sep="\t")
+    # write output (taxon-counts)
+    outputname_correlation <- gsub(filename, pattern="seqOut_taxonomy", replacement="taxoncounts_rho_ACSnonoise")
+    outputname_pval <- gsub(filename, pattern="seqOut_taxonomy", replacement="taxoncounts_pvalue_ACSnonoise")
+    write.table(counts_correlation_object[[1]], 
+                paste0("data/correlations_taxoncounts/", outputname_correlation), 
+                col.names=T, row.names=T, quote=F, sep="\t")
+    write.table(counts_correlation_object[[2]], 
+                paste0("data/correlations_taxoncounts/", outputname_pval), 
+                col.names=T, row.names=T, quote=F, sep="\t")
+}
 
 
 
@@ -1089,6 +1210,7 @@ for(file in list.files("data/correlations_taxoncounts/", recursive = F, pattern 
 # discordant associations (DA, significant association but with opposite sign) have been calculated separately from FP and FN, 
 # but in the calculations for FPR, precision and recall, they are considered both as FP and FN
 results <- tibble(method, spread, datatable, matrixnum, scen, true_positive, false_positive, true_negative, false_negative, discordant)
+results <- results %>% dplyr::filter(!grepl("nonoise", method))
 results <- results %>%
     mutate(FDR=100*(false_positive+discordant)/(false_positive+discordant+true_positive)) %>% 
     mutate(Recall=100*true_positive/(true_positive+false_negative+discordant)) %>% 
@@ -1473,11 +1595,12 @@ results <- results %>%
 
 write_tsv(results, "output/taxoncounts/specialtaxon/statistics_taxoncounts_correlation_onlyspecialtaxa.tsv", col_names = T)
 method_type <- tibble(method=c("Seq", "RMP", "Rel", "AST", "CLR", "CSS", "GMPR",
-                               "UQ", "RLE", "TMM", "VST", "QMP", "ACS"),
+                               "UQ", "RLE", "TMM", "VST", "QMP", "ACS", "QMPnonoise", "ACSnonoise"),
                       method_type=c("Sequencing - non-transformed", 
                                     rep("Relative transformations",  times=2),
                                     rep("Compositional transformations", times=8),
-                                    rep("Quantitative transformations", times=2)))
+                                    rep("Quantitative transformations", times=2), 
+                                    rep("Quantitative transformation - no noise", times = 2)))
 
 
 results <- results %>% 
@@ -1486,9 +1609,10 @@ results <- results %>%
 results$method_type <- factor(results$method_type, 
                               levels=c("Sequencing - non-transformed", "Relative transformations", 
                                        "Compositional transformations",
-                                       "Quantitative transformations"))
+                                       "Quantitative transformations",
+                                       "Quantitative transformation - no noise"))
 results$method <- factor(results$method, levels=c("Seq", "Rel", "RMP","AST", "CLR", "CSS", "GMPR",
-                                                  "UQ", "RLE", "TMM", "VST", "ACS", "QMP"))
+                                                  "UQ", "RLE", "TMM", "VST", "ACS", "QMP", "ACSnonoise", "QMPnonoise"))
 
 results$spread <- factor(results$spread, levels=c("low", "medium", "high"))
 results$scen <- factor(results$scen, levels=c("Healthy", "Blooming","Dysbiosis"))
@@ -1508,7 +1632,7 @@ toplot <- results_all %>%
 toplot$metric <- factor(toplot$metric, levels=c("TP", "FP", "TN", "FN", "DA"))
 toplot$specialtaxon <- factor(toplot$specialtaxon, levels=c("Bloomer", "Opportunist", "Unresponsive"))
 
-p3 <- ggbarplot(toplot, x="method", y="value", fill="metric", facet.by=c("specialtaxon"), 
+p3 <- ggbarplot(toplot %>% dplyr::filter(!grepl("nonoise", method)), x="method", y="value", fill="metric", facet.by=c("specialtaxon"), 
                 palette=rev(inlmisc::GetTolColors(5, scheme = "sunset")),
                 color="white",
                 legend.title="Metric", title="Associations of transformed taxon abundances with original microbial loads (special taxa)",
@@ -1523,6 +1647,20 @@ p3 <- ggbarplot(toplot, x="method", y="value", fill="metric", facet.by=c("specia
 
 ggsave(p3, filename = "output/taxoncounts/specialtaxon/plot_performance_taxoncounts_special.pdf", device = "pdf", width = 8, height=3.5, useDingbats=FALSE)
 
+p3nonoise <- ggbarplot(toplot, x="method", y="value", fill="metric", facet.by=c("specialtaxon"), 
+                palette=rev(inlmisc::GetTolColors(5, scheme = "sunset")),
+                color="white",
+                legend.title="Metric", title="Associations of transformed taxon abundances with original microbial loads (special taxa)",
+                xlab="Method", ylab="Percentage") +
+    theme_bw()+ rotate_x_text(45) +
+    theme(panel.grid.major = element_line(colour = "gray97"), 
+          panel.grid.minor = element_line(colour = "gray97")) + 
+    theme(axis.title = element_text(face = "bold"), 
+          plot.title = element_text(size = 14, 
+                                    face = "bold"), 
+          legend.title = element_text(face = "bold"))
+
+ggsave(p3nonoise, filename = "output/taxoncounts/specialtaxon/plot_performance_taxoncounts_special_nonoise.pdf", device = "pdf", width = 8, height=3.5, useDingbats=FALSE)
 
 
 # now only scaled to the number of special taxa
@@ -1552,9 +1690,9 @@ toplot <- results_all %>%
 toplot$metric <- factor(toplot$metric, levels=c("FP_scaled", "DA_scaled", "TP_scaled"))
 toplot$specialtaxon <- factor(toplot$specialtaxon, levels=c("Bloomer", "Opportunist", "Unresponsive"))
 toplot$method <- factor(toplot$method, levels=c("Seq", "Rel", "RMP","AST", "CLR", "CSS", "GMPR",
-                                                "UQ", "RLE", "TMM", "VST", "ACS", "QMP"))
+                                                "UQ", "RLE", "TMM", "VST", "ACS", "QMP", "ACSnonoise", "QMPnonoise"))
 
-p3b <- ggbarplot(toplot, x="method", y="value", fill="metric", facet.by=c("specialtaxon"), 
+p3b <- ggbarplot(toplot %>% dplyr::filter(!grepl("nonoise", method)), x="method", y="value", fill="metric", facet.by=c("specialtaxon"), 
                  palette=rev(inlmisc::GetTolColors(5, scheme = "sunset"))[c(1:2,4)],
                  color="white",
                 subtitle="True Positives, False Positives and Discordant Associations, scaled to the number of true associations",
@@ -1570,6 +1708,23 @@ p3b <- ggbarplot(toplot, x="method", y="value", fill="metric", facet.by=c("speci
     geom_hline(yintercept = 100, col="black", lwd=1)
 
 ggsave(p3b, filename = "output/taxoncounts/specialtaxon/plot_performance_taxoncounts_special_scaledpositives.pdf", device = "pdf", width = 8, height=3.5, useDingbats=FALSE)
+
+p3bnonoise <- ggbarplot(toplot, x="method", y="value", fill="metric", facet.by=c("specialtaxon"), 
+                 palette=rev(inlmisc::GetTolColors(5, scheme = "sunset"))[c(1:2,4)],
+                 color="white",
+                 subtitle="True Positives, False Positives and Discordant Associations, scaled to the number of true associations",
+                 legend.title="Metric", title="Associations of transformed taxon abundances with original microbial loads (special taxa)",
+                 xlab="Method", ylab="Percentage") +
+    theme_bw()+ rotate_x_text(45) +
+    theme(panel.grid.major = element_line(colour = "gray97"), 
+          panel.grid.minor = element_line(colour = "gray97")) + 
+    theme(axis.title = element_text(face = "bold"), 
+          plot.title = element_text(size = 14, 
+                                    face = "bold"), 
+          legend.title = element_text(face = "bold"))+
+    geom_hline(yintercept = 100, col="black", lwd=1)
+
+ggsave(p3bnonoise, filename = "output/taxoncounts/specialtaxon/plot_performance_taxoncounts_special_scaledpositives_nonoise.pdf", device = "pdf", width = 8, height=3.5, useDingbats=FALSE)
 
 
 
@@ -1910,6 +2065,7 @@ for(file in list.files("data/correlations_taxontaxon", recursive = F, pattern = 
 
 # write results table
 results <- tibble(method, spread, datatable, matrixnum, scen, true_positive, true_positive_discordant,false_positive, true_negative, false_negative, discordant)
+results <- results %>% dplyr::filter(!grepl("nonoise", method))
 results <- results %>%
     mutate(FDR=100*(false_positive+discordant)/(false_positive+discordant+true_positive+true_positive_discordant)) %>% 
     mutate(Recall=100*(true_positive+true_positive_discordant)/(true_positive+true_positive_discordant+false_negative+discordant)) %>% 
@@ -2157,8 +2313,6 @@ ggsave(all_res, filename = "output/taxontaxon/dunn_tests_plots.pdf", device="pdf
 kruskal_table <- bind_rows(sensitivity_kruskal, precision_kruskal, fpr_kruskal)
 dunn_table <- bind_rows(sensitivity_dunn, precision_dunn, fpr_dunn)
 
-dunn_table <- dunn_table %>% 
-    dplyr::filter(!(.y.=="false_positive_rate" & scen=="Healthy")) # remove non-significant data from kruskal - only kept for plotting 
 write_tsv(kruskal_table, path="output/taxontaxon/kruskal_wallis_method_comparison.txt", col_names=T)
 write_tsv(dunn_table, path="output/taxontaxon/dunn_test_method_comparison.txt", col_names=T)
 
@@ -2347,6 +2501,7 @@ for(file in list.files("data/correlations_taxontaxon/", recursive = F, pattern =
 
 # write results table
 results <- tibble(method, spread, datatable, matrixnum, scen, true_positive, true_positive_discordant,false_positive, true_negative, false_negative, discordant, specialtaxon)
+results <- results %>% dplyr::filter(!grepl("nonoise", method))
 results <- results %>%
     mutate(FDR=100*(false_positive+discordant)/(false_positive+discordant+true_positive+true_positive_discordant)) %>% 
     mutate(Recall=100*(true_positive+true_positive_discordant)/(true_positive+true_positive_discordant+false_negative+discordant)) %>% 
@@ -2627,6 +2782,7 @@ for(file in list.files("data/correlations_taxonmetadata/", recursive = F, patter
 
 # write results table
 results <- tibble(method, spread, datatable, matrixnum, scen, true_positive, false_positive, true_negative, false_negative, discordant)
+results <- results %>% dplyr::filter(!grepl("nonoise", method))
 results <- results %>%
     mutate(FDR=100*(false_positive+discordant)/(false_positive+discordant+true_positive)) %>% 
     mutate(Recall=100*true_positive/(true_positive+false_negative+discordant)) %>% 
@@ -2847,8 +3003,6 @@ ggsave(all_res, filename = "output/taxonmetadata/dunn_tests_plots.pdf", device="
 kruskal_table <- bind_rows(sensitivity_kruskal, precision_kruskal, fpr_kruskal)
 dunn_table <- bind_rows(sensitivity_dunn, precision_dunn, fpr_dunn)
 
-dunn_table <- dunn_table %>% 
-    dplyr::filter(!(.y.=="false_positive_rate" & scen=="Healthy")) # remove non-significant data from kruskal - only kept for plotting 
 write_tsv(kruskal_table, path="output/taxonmetadata/kruskal_wallis_method_comparison.txt", col_names=T)
 write_tsv(dunn_table, path="output/taxonmetadata/dunn_test_method_comparison.txt", col_names=T)
 
@@ -3008,6 +3162,7 @@ for(file in list.files("data/correlations_taxonmetadata/", recursive = F, patter
 
 # write results table
 results <- tibble(method, spread, datatable, matrixnum, scen, true_positive, false_positive, true_negative, false_negative, discordant, specialtaxon)
+results <- results %>% dplyr::filter(!grepl("nonoise", method))
 results <- results %>%
     mutate(FDR=100*(false_positive+discordant)/(false_positive+discordant+true_positive)) %>% 
     mutate(Recall=100*true_positive/(true_positive+false_negative+discordant)) %>% 

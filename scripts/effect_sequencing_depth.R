@@ -1007,6 +1007,9 @@ p1 <- ggline(rr %>% dplyr::filter(datatable=="all"), x = "num_samples", y = "fal
              xlab="Sequencing depth", ylab="False positive rate [FP/FP+TN]") + theme_bw()
 ggsave(p1, filename="output/seq_depth/plot_depth_taxontaxon_FPR.pdf", device="pdf", width=11, height=3.5, useDingbats=F)
 
+taxontaxon <- rr %>% 
+    dplyr::select(method, scen, matrixnum,Recall, Precision, false_positive_rate, num_samples) %>% 
+    mutate(measurement="Taxon-taxon correlations")
 
 #### Assess performance of the methods across different sample numbers (taxon-metadata) ####
 r05 <- read_tsv("output/seq_depth/statistics_taxonmetadata_correlation_9.9.tsv")
@@ -1046,3 +1049,9 @@ p1 <- ggline(rr %>% dplyr::filter(datatable=="all"), x = "num_samples", y = "fal
              xlab="Sequencing depth", ylab="False positive rate [FP/FP+TN]") + theme_bw()
 ggsave(p1, filename="output/seq_depth/plot_depth_taxonmetadata_FPR.pdf", device="pdf", width=11, height=3.5, useDingbats=F)
 
+taxonmetadata <- rr %>% 
+    dplyr::select(method, scen, matrixnum,Recall, Precision, false_positive_rate, num_samples) %>% 
+    mutate(measurement="Taxon-metadata correlations")
+
+print_data <- bind_rows(taxontaxon, taxonmetadata)
+write_tsv(print_data, file="output/seq_depth/sequencingdepth_output.txt", col_names = T)

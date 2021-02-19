@@ -31,4 +31,6 @@ output/seq_depth/*
 output/taxon_prevalence/*
 output/proportionality/*
 scripts/extra_plots*
+scripts/*_old*
+scripts/alpha_diversity_breakaway.R
 *._*

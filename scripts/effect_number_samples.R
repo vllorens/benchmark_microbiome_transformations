@@ -37,7 +37,7 @@ system("rm -rf output/number_samples/*")
 #### Loop to test effect of number of samples ####
 set.seed(14102019)
 
-for(numberofsamplestomake in c(20,50,100,200,500,1000)){
+for(numberofsamplestomake in c(50,100,200,500,1000)){
     # create matrices (if not there)
     system("mkdir -p data/tax_matrices")
     system("mkdir -p data/seq_matrices")
@@ -965,19 +965,17 @@ for(numberofsamplestomake in c(20,50,100,200,500,1000)){
 
 #### Assess performance of the methods across different sample numbers (taxon-taxon) ####
 mycolors <- inlmisc::GetTolColors(13, scheme = "sunset")
-r20 <- read_tsv("output/number_samples/statistics_taxontaxon_correlation_20.tsv")
 r50 <- read_tsv("output/number_samples/statistics_taxontaxon_correlation_50.tsv")
 r100 <- read_tsv("output/number_samples/statistics_taxontaxon_correlation_100.tsv")
 r200 <- read_tsv("output/number_samples/statistics_taxontaxon_correlation_200.tsv")
 r500 <- read_tsv("output/number_samples/statistics_taxontaxon_correlation_500.tsv")
 r1000 <- read_tsv("output/number_samples/statistics_taxontaxon_correlation_1000.tsv")
-r20 <- r20 %>% mutate(num_samples="20")
 r50 <- r50 %>% mutate(num_samples="50")
 r100 <- r100 %>% mutate(num_samples="100")
 r200 <- r200 %>% mutate(num_samples="200")
 r500 <- r500 %>% mutate(num_samples="500")
 r1000 <- r1000 %>% mutate(num_samples="1000")
-rr <- bind_rows(r20,r50,r100,r200,r500,r1000)
+rr <- bind_rows(r50,r100,r200,r500,r1000)
 
 rr$method <- factor(rr$method, levels=c("Seq", "Rel", "RMP", "AST", "CLR", "CSS", "GMPR",
                                         "RLE", "TMM", "UQ", "VST",
@@ -985,8 +983,7 @@ rr$method <- factor(rr$method, levels=c("Seq", "Rel", "RMP", "AST", "CLR", "CSS"
 rr$spread <- factor(rr$spread, levels=c("low", "medium", "high"))
 rr$scen <- factor(rr$scen, levels=c("Healthy", "Blooming", "Dysbiosis"))
 
-rr$num_samples <- factor(rr$num_samples, levels=c("20", "50", "100",
-                                                  "200", "500", "1000"))
+rr$num_samples <- factor(rr$num_samples, levels=c("50", "100", "200", "500", "1000"))
 
 p1 <- ggline(rr %>% dplyr::filter(datatable=="all"), x = "num_samples", y = "Precision", 
              add = c("mean_se"),
@@ -1005,21 +1002,23 @@ p1 <- ggline(rr %>% dplyr::filter(datatable=="all"), x = "num_samples", y = "fal
 ggsave(p1, filename="output/number_samples/plot_samplesize_taxontaxon_FPR.pdf", device="pdf", width=11, height=3.5, useDingbats=F)
 
 
+taxontaxon <- rr %>% 
+    dplyr::select(method, scen, matrixnum,Recall, Precision, false_positive_rate, num_samples) %>% 
+    mutate(measurement="Taxon-taxon correlations")
+
 #### Assess performance of the methods across different sample numbers (taxon-metadata) ####
 mycolors <- inlmisc::GetTolColors(13, scheme = "sunset")
-r20 <- read_tsv("output/number_samples/statistics_taxonmetadata_correlation_20.tsv")
 r50 <- read_tsv("output/number_samples/statistics_taxonmetadata_correlation_50.tsv")
 r100 <- read_tsv("output/number_samples/statistics_taxonmetadata_correlation_100.tsv")
 r200 <- read_tsv("output/number_samples/statistics_taxonmetadata_correlation_200.tsv")
 r500 <- read_tsv("output/number_samples/statistics_taxonmetadata_correlation_500.tsv")
 r1000 <- read_tsv("output/number_samples/statistics_taxonmetadata_correlation_1000.tsv")
-r20 <- r20 %>% mutate(num_samples="20")
 r50 <- r50 %>% mutate(num_samples="50")
 r100 <- r100 %>% mutate(num_samples="100")
 r200 <- r200 %>% mutate(num_samples="200")
 r500 <- r500 %>% mutate(num_samples="500")
 r1000 <- r1000 %>% mutate(num_samples="1000")
-rr <- bind_rows(r20,r50,r100,r200,r500,r1000)
+rr <- bind_rows(r50,r100,r200,r500,r1000)
 
 rr$method <- factor(rr$method, levels=c("Seq", "Rel", "RMP", "AST", "CLR", "CSS", "GMPR",
                                         "RLE", "TMM", "UQ", "VST",
@@ -1027,8 +1026,7 @@ rr$method <- factor(rr$method, levels=c("Seq", "Rel", "RMP", "AST", "CLR", "CSS"
 rr$spread <- factor(rr$spread, levels=c("low", "medium", "high"))
 rr$scen <- factor(rr$scen, levels=c("Healthy",  "Blooming", "Dysbiosis"))
 
-rr$num_samples <- factor(rr$num_samples, levels=c("20", "50", "100", 
-                                                  "200", "500", "1000"))
+rr$num_samples <- factor(rr$num_samples, levels=c("50", "100", "200", "500", "1000"))
 
 p1 <- ggline(rr %>% dplyr::filter(datatable=="all"), x = "num_samples", y = "Precision", 
              add = c("mean_se"),
@@ -1047,3 +1045,10 @@ p1 <- ggline(rr %>% dplyr::filter(datatable=="all"), x = "num_samples", y = "fal
 ggsave(p1, filename="output/number_samples/plot_samplesize_taxonmetadata_FPR.pdf", device="pdf", width=11, height=3.5, useDingbats=F)
 
 
+
+taxonmetadata <- rr %>% 
+    dplyr::select(method, scen, matrixnum,Recall, Precision, false_positive_rate, num_samples) %>% 
+    mutate(measurement="Taxon-metadata correlations")
+
+print_data <- bind_rows(taxontaxon, taxonmetadata)
+write_tsv(print_data, file="output/number_samples/number_samples_output.txt", col_names = T)
