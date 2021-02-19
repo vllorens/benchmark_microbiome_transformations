@@ -2,7 +2,7 @@
 
 # Microbiota simulations
 
-This repository contains the scripts to generate and analyze the simulations from the paper "Quantitative Microbiome Profiling outperforms computational microbiome data normalizations in mitigating compositionality effects". 
+This repository contains the scripts to generate and analyze the simulations from the paper "*In silico* analyses of simulated microbial communities emphasize the need for quantitative microbiome analyses". 
 
 
 ## How to use this repository
@@ -31,7 +31,7 @@ The different folders and files contained here are:
 
 packages_cran = c("tidyverse", "ggpubr", "ggtext",
              "rstatix", "ggsignif", "gdata",
-             "BiocManager", "RColorBrewer", "devtools")
+             "BiocManager", "RColorBrewer", "devtools", "inlmisc")
 
 packages_bioconductor <- c("phyloseq", "DESeq2", "ALDEx2",
                          "edgeR", "vegan", "metagenomeSeq")
@@ -118,8 +118,6 @@ In all of these methods, we will only evaluate those taxa with prevalence > 50%.
 
 Run the script **qmp_vs_acs_dysbiosis.R**. In this script we compare the performance of QMP and ACS in detecting taxa associated to a disease condition that is characterized by a decrease in total microbial loads. 
 
-Run the script **qmp_vs_acs.R**. In this script we expand on the previous analyses and test the performance of QMP and ACS in detecting taxon-metadata associations, focusing on invariant taxa (in absolute abundances) and metadata that are associated to cell counts, to evaluate their performance in terms of lower false positive rates.
-
 
 ### 5. Test the effect of the number of samples, sequencing depth and taxon prevalence threshold
 
@@ -127,7 +125,6 @@ Run the following scripts:
 
 * **effect_number_samples.R**
 * **effect_sequencing_depth.R**
-* **effect_taxon_prevalence.R**
 
-These three scripts repeat the correlation analysis from **section 3**, but screening throughout the different parameters to evaluate their influcence on the different transformations. These scripts require generating the data and calculating all of the correlations several times, so they may take a long time. You may consider running them in the command line.
+These two scripts repeat the correlation analysis from **section 3**, but screening throughout the different parameters to evaluate their influence on the different transformations. These scripts require generating the data and calculating all of the correlations several times, so they may take a long time. You may consider running them in the command line (on a server).
 
