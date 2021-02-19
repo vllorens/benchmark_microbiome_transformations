@@ -119,7 +119,7 @@ In all of these methods, we will only evaluate those taxa with prevalence > 50%.
 Run the script **qmp_vs_acs_dysbiosis.R**. In this script we compare the performance of QMP and ACS in detecting taxa associated to a disease condition that is characterized by a decrease in total microbial loads. 
 
 
-### 5. Test the effect of the number of samples, sequencing depth and taxon prevalence threshold
+### 5. Test the effect of the number of samples and sequencing depth
 
 Run the following scripts: 
 
