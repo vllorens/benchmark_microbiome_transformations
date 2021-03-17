@@ -95,8 +95,8 @@ Sequencing:
 
 Relative transformations:
 * *Rel*: Relative data, notmalized scaling to the total sequencing counts.
-* *AST*: Sequencing data. Normalized using total sum scaling + arcsine squared-root transformation.
-* *RMP*: 
+* *AST*: Sequencing data is normalized using total sum scaling + arcsine squared-root transformation.
+* *RMP*: Sequencing data is downsized to achieve even sequencing depth.
 
 Compositional transformations:
 * *CLR*: Data normalized using Centered Log Ratio transformation (CoDaSeq implementation)
