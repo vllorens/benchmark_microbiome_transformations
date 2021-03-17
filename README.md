@@ -2,7 +2,7 @@
 
 # Microbiota simulations
 
-This repository contains the scripts to generate and analyze the simulations from the paper "*In silico* analyses of simulated microbial communities emphasize the need for quantitative microbiome analyses". 
+This repository contains the scripts to generate and analyze the simulations from the paper "Benchmarking microbiome transformations favors experimental, quantitative approaches to address compositionality and sampling depth biases". 
 
 
 ## How to use this repository
@@ -36,7 +36,7 @@ packages_cran = c("tidyverse", "ggpubr", "ggtext",
 packages_bioconductor <- c("phyloseq", "DESeq2", "ALDEx2",
                          "edgeR", "vegan", "metagenomeSeq")
                          
-packages_github <- c("CoDaSeq")
+packages_github <- c("ggloor/CoDaSeq/CoDaSeq")
 
 ## Install packages
 
@@ -53,7 +53,9 @@ lapply(packages_bioconductor, FUN=function(x){
 })
 
 lapply(packages_github, FUN=function(x){
-    if(!requireNamespace(x, quietly = TRUE)){
+    pkg_name <- strsplit(x, split="/")[[1]]
+    pkg_name <- pkg_name[length(pkg_name)]
+    if(!requireNamespace(pkg_name, quietly = TRUE)){
         devtools::install_github(x)
     }
 })

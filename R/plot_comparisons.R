@@ -5,8 +5,15 @@ source("R/corrmod.R")
 
 plot_comparisons <- function(dunn, title=NULL){
     
-    dunn_effsize <- dunn %>% mutate(n=n1+n2) %>% mutate(effsize=statistic/sqrt(n)) %>% dplyr::select(group1, group2, effsize) %>% pivot_wider(names_from = group2, values_from = effsize)
-    dunn_adj <- dunn %>% mutate(n=n1+n2) %>% mutate(effsize=statistic/sqrt(n)) %>% dplyr::select(group1, group2, p.adj) %>% pivot_wider(names_from = group2, values_from = p.adj)
+    dunn_effsize <- dunn %>% 
+        mutate(effsize=ifelse(statistic>0, 1, -1)) %>% 
+        dplyr::select(group1, group2, effsize) %>% 
+        pivot_wider(names_from = group2, values_from = effsize)
+    dunn_adj <- dunn %>% 
+        mutate(n=n1+n2) %>% 
+        mutate(effsize=statistic/sqrt(n)) %>% 
+        dplyr::select(group1, group2, p.adj) %>% 
+        pivot_wider(names_from = group2, values_from = p.adj)
     
     dunn_effsize <- as.data.frame(dunn_effsize)
     rownames(dunn_effsize) <- dunn_effsize[,1]
@@ -23,7 +30,7 @@ plot_comparisons <- function(dunn, title=NULL){
     dunn_adj <- cbind(Seq=NA, dunn_adj)
     dunn_adj <- rbind(dunn_adj, ACS=NA)
 
-    
+    # two colors - red = higher; blue = lower - no scale
     ggcorrmod(dunn_effsize, method = "square", type = "upper", 
               colors = c("#354B99", "white", "#A50026"),
             #  colors = c("#6D9EC1", "white", "#E46726"), 

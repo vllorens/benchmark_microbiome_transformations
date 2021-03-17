@@ -361,6 +361,9 @@ for(i in 1:length(qmp_list)){
     matname <- c(matname, matrix_name)
     valuesused <- c(valuesused, "all")
     
+    raw_result <- tibble(tpqmp, tpacs, daqmp, daacs, fpqmp, fpacs, fnqmp, fnacs, spread_name, taxa="all", matrix=matrix_name)
+    write_tsv(raw_result, "output/qmp_acs/qmp_vs_acs_raw_result.tsv", append = T)
+    
     # Assess performance specifically on taxa associated to disease
     # taxa associated to disease
     sign_disease <- table(reference_sign_all) %>% which.min %>% names() %>% as.numeric()
@@ -417,6 +420,9 @@ for(i in 1:length(qmp_list)){
     matname <- c(matname, matrix_name)
     valuesused <- c(valuesused, "disease")
     
+    raw_result <- tibble(tpqmp, tpacs, daqmp, daacs, fpqmp, fpacs, fnqmp, fnacs, spread_name, taxa="disease", matrix=matrix_name)
+    write_tsv(raw_result, "output/qmp_acs/qmp_vs_acs_raw_result.tsv", append = T)
+    
     # Assess performance specifically on invariant taxa
     taxa_flat <-  real_assoc_p_filtered %>% 
         dplyr::filter(p_adj>0.05) %>% 
@@ -471,6 +477,9 @@ for(i in 1:length(qmp_list)){
     matname <- c(matname, matrix_name)
     valuesused <- c(valuesused, "flat")
     
+    raw_result <- tibble(tpqmp, tpacs, daqmp, daacs, fpqmp, fpacs, fnqmp, fnacs, spread_name, taxa="flat", matrix=matrix_name)
+    write_tsv(raw_result, "output/qmp_acs/qmp_vs_acs_raw_result.tsv", append = T)
+    
     result <- tibble(fdr_qmp, fdr_acs, spread_v, scenario_v, fp_qmp, fp_acs, tp_qmp, tp_acs, pr_qmp, pr_acs, matname, valuesused)
     write_tsv(result, "output/qmp_acs/qmp_vs_acs_taxonmetadata.tsv", col_names = T)
 }
@@ -493,7 +502,9 @@ resultlong$spread_v <- factor(resultlong$spread_v, levels=c("Low", "Medium", "Hi
 resultlong$method <- factor(resultlong$method, levels=c("ACS", "QMP"))
 fprall <- ggpaired(resultlong, x="method", y="FPR", fill="method", facet.by="spread_v", group.by="matname",
                    add="jitter", line.color = "gray", line.size = 0.4,
-                   palette=inlmisc::GetColors(5, scheme = "sunset")[c(3,4)], xlab="Method", 
+                   palette=inlmisc::GetColors(5, scheme = "sunset")[c(2,1)],
+                   xlab="Method", 
+                   ylim=c(0,1.1),
                    ylab="FPR [FP/FP+TN]", title = "Taxa-disease associations - FPR", 
                    legend.title="Method") + 
     stat_compare_means(method="wilcox", paired = T, comparisons=list(c("QMP", "ACS"))) +
@@ -524,7 +535,8 @@ resultlong$method <- factor(resultlong$method, levels=c("ACS", "QMP"))
 
 precisionall <- ggpaired(resultlong, x="method", y="Precision", fill="method", facet.by="spread_v",group.by="matname",
                          add="jitter",line.color = "gray", line.size = 0.4,
-                         palette=inlmisc::GetColors(5, scheme = "sunset")[c(3,4)], xlab="Method", 
+                         palette=inlmisc::GetColors(5, scheme = "sunset")[c(2,1)],
+                         xlab="Method", 
                          ylab="Precision [TP/TP+FP]", title = "Taxa-disease associations - Precision",
                          legend.title="Method") + 
     stat_compare_means(method="wilcox", paired = T,comparisons=list(c("QMP", "ACS"))) +
@@ -555,7 +567,8 @@ resultlong$method <- factor(resultlong$method, levels=c("ACS", "QMP"))
 
 recallall <- ggpaired(resultlong, x="method", y="Recall", fill="method", facet.by="spread_v",group.by="matname",
                       add="jitter",line.color = "gray", line.size = 0.4,
-                      palette=inlmisc::GetColors(5, scheme = "sunset")[c(3,4)], xlab="Method", 
+                      palette=inlmisc::GetColors(5, scheme = "sunset")[c(2,1)],
+                      xlab="Method", 
                       ylab="Recall [TP/TP+FN]", title = "Taxa-disease associations - Recall",
                       legend.title="Method") + 
     stat_compare_means(method="wilcox", paired = T,comparisons=list(c("QMP", "ACS"))) +
@@ -588,8 +601,9 @@ resultlong$method <- factor(resultlong$method, levels=c("ACS", "QMP"))
 
 fprinv <- ggpaired(resultlong, x="method", y="FPR", fill="method", facet.by="spread_v", group.by="mat_name",
                    add="jitter",line.color = "gray", line.size = 0.4,
-                   palette=inlmisc::GetColors(5, scheme = "sunset")[c(3,4)],
+                   palette=inlmisc::GetColors(5, scheme = "sunset")[c(2,1)],
                    xlab="Method", 
+                   ylim=c(0,1.1),
                    ylab="FPR [FP/FP+TN]", title = "Invariant taxa-disease associations - FPR",
                    legend.title="Method") + 
     stat_compare_means(method="wilcox", paired = T, comparisons=list(c("QMP", "ACS"))) +
@@ -622,7 +636,7 @@ resultlong$method <- factor(resultlong$method, levels=c("ACS", "QMP"))
 
 recallopp <- ggpaired(resultlong, x="method", y="Sensitivity", fill="method", facet.by="spread_v", group.by="mat_name",
                    add="jitter",line.color = "gray", line.size = 0.4,
-                   palette=inlmisc::GetColors(5, scheme = "sunset")[c(3,4)],
+                   palette=inlmisc::GetColors(5, scheme = "sunset")[c(2,1)],
                    xlab="Method", 
                    ylab="Sensitivity", title = "Opportunist taxa-disease associations - FPR",
                    legend.title="Method") + 
@@ -644,4 +658,74 @@ pub_plot <- ggarrange(recallall, fprall, fprinv, ncol=1, nrow=3, labels="auto",l
 ggsave(pub_plot, file="output/qmp_acs/qmp_vs_acs_summary.pdf", device="pdf", 
        width=8, height=9,useDingbats=FALSE)
 
+
+
+## Add scaled plot ##
+# now only scaled to the number of positives in the samples
+
+sequencing_avg_depths <- seq(9.2, 11.5, length.out=10) # only from  10000 to 100000 reads
+depths <- rep(rep(exp(sequencing_avg_depths), each=3), times=10)
+
+results_raw <- read_tsv("output/qmp_acs/qmp_vs_acs_raw_result.tsv", col_names = F) %>% 
+    mutate(depths=depths)
+
+colnames(results_raw) <- c("tp_qmp", "tp_acs", "da_qmp", "da_acs", "fp_qmp", "fp_acs", "fn_qmp", "fn_acs", "spread", "taxa", "matname", "depths") 
+results_raw <- results_raw %>% 
+    gather(key="metric", value="number", -spread, -taxa, -matname, -depths) %>% 
+    separate(metric, into=c("metric", "method")) %>% 
+    tidyr::spread(key="metric", value = "number") %>% 
+    mutate(actual_positives = tp+da+fn)
+
+toplot <- results_raw %>% 
+    mutate(TP_scaled=100*tp/(actual_positives)) %>% 
+    mutate(FP_scaled=100*fp/(actual_positives)) %>% 
+    mutate(DA_scaled=100*da/(actual_positives)) %>% 
+    dplyr::select(method, TP_scaled, FP_scaled, DA_scaled, spread, taxa) %>%
+    drop_na() %>% 
+    gather(key="metric", value="value", -method, -spread, -taxa) %>% 
+    group_by(method, taxa, metric, spread) %>% 
+    summarize(value=mean(value)) %>% 
+    ungroup %>% 
+    drop_na()
+
+toplot$metric <- factor(toplot$metric, levels=c("FP_scaled", "DA_scaled", "TP_scaled"))
+toplot$spread <- factor(toplot$spread, levels=c("low", "medium", "high"))
+toplot$method <- gsub(toplot$method, pattern="acs", replacement="ACS")
+toplot$method <- gsub(toplot$method, pattern="qmp", replacement="QMP")
+toplot$method <- factor(toplot$method, levels=c("ACS", "QMP"))
+
+barplot_qmpacs <- ggbarplot(toplot %>% dplyr::filter(taxa=="all"),
+                            x="method", y="value", fill="metric", facet.by=c("spread"), 
+                 palette=rev(inlmisc::GetTolColors(5, scheme = "sunset"))[c(1:2,4)],
+                 color="white",
+                 subtitle="True Positives, False Positives and Discordant Associations, scaled to the number of true associations",
+                 legend.title="Metric", title="Taxa-disease associations",
+                 xlab="Method", ylab="Percentage") +
+    theme_bw()+ rotate_x_text(45) +
+    theme(panel.grid.major = element_line(colour = "gray97"), 
+          panel.grid.minor = element_line(colour = "gray97")) + 
+    theme(axis.title = element_text(face = "bold"), 
+          plot.title = element_text(size = 14, 
+                                    face = "bold"), 
+          legend.title = element_text(face = "bold")) +
+    geom_hline(yintercept = 100, col="black", lwd=1)
+
+ggsave(barplot_qmpacs, filename = "output/qmp_acs/qmp_vs_acs_summary_barplot.pdf", device="pdf", 
+       width=6, height=3, useDingbats=F)
+
+barplot_qmpacs <- ggbarplot(toplot %>% dplyr::filter(taxa=="all"),
+                            x="method", y="value", fill="metric", facet.by=c("spread"), 
+                            palette=rev(inlmisc::GetTolColors(5, scheme = "sunset"))[c(1:2,4)],
+                            color="white",
+                            subtitle="True Positives, False Positives and Discordant Associations, scaled to the number of true associations",
+                            legend.title="Metric", title="Taxa-disease associations",
+                            xlab="Method", ylab="Percentage") +
+    theme_bw()+ rotate_x_text(45) +
+    theme(panel.grid.major = element_line(colour = "gray97"), 
+          panel.grid.minor = element_line(colour = "gray97")) + 
+    theme(axis.title = element_text(face = "bold"), 
+          plot.title = element_text(size = 14, 
+                                    face = "bold"), 
+          legend.title = element_text(face = "bold")) +
+    geom_hline(yintercept = 100, col="black", lwd=1)
 
