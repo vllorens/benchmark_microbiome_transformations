@@ -1,8 +1,8 @@
-
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4719508.svg)](https://doi.org/10.5281/zenodo.4719508)
 
 # Microbiota simulations
 
-This repository contains the scripts to generate and analyze the simulations from the paper "Benchmarking microbiome transformations favors experimental, quantitative approaches to address compositionality and sampling depth biases". 
+This repository contains the scripts to generate and analyze the simulations from the paper "Benchmarking microbiome transformations favors experimental quantitative approaches to address compositionality and sampling depth biases". 
 
 
 ## How to use this repository
