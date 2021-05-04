@@ -203,8 +203,36 @@ for(file in list.files("data/tax_matrices", full.names = T, pattern="Dysbiosis")
     }
 }
 
-
-
+#### for the examples plotted above, calculate adjusted p-values for the differences in cell counts, using the N=10 matrices ####
+count_table <- tibble()
+for(i in 1:length(qmp_list)){ 
+    # get matrix details
+    scenario_name <- "Dysbiosis"
+    matrix_name <- strsplit(qmp_list[i], split="_")[[1]][1]
+    
+    # get original matrix and counts and spread
+    filename <- list.files(path ="data/tax_matrices/", 
+                           pattern= paste0("taxonomy_", matrix_name, "_"), 
+                           full.names = T)
+    tax_matrix <- read.table(filename, header=T, stringsAsFactors=F, sep="\t")
+    counts_original <- tax_matrix %>% 
+        apply(., 2, sum) %>% 
+        as_tibble() %>% 
+        mutate(sample=colnames(tax_matrix))
+    group_class <- get(disease_status[i])
+    count_table_mat <- counts_original %>% 
+        left_join(group_class, by="sample") %>% 
+        mutate(mat_name=matrix_name)
+    count_table <- bind_rows(count_table, count_table_mat)
+}    
+    
+count_table <- count_table %>% 
+    distinct() # get only one repetition for each matrix, as we're not using the sequencing data here
+ 
+count_table %>% 
+    group_by(mat_name) %>% 
+    rstatix::wilcox_test(value ~ groupClass, paired = F, alternative="two.sided") %>% 
+    mutate(p.adj=p.adjust(p, method = "BH"))
 
 
 #### evaluate all matrices generated ####
